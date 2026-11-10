@@ -22,6 +22,8 @@ from django.views.generic import (
 )
 
 from apps.foyers.acces import AccesFoyerMixin, VueDeFoyerMixin, VueFormulaireDeFoyerMixin
+from apps.foyers.middleware import CLE_SESSION_FOYER
+from apps.foyers.models import Role
 from apps.socle.limites import limiter_par_utilisateur
 from apps.socle.models import RequeteDeFoyer
 from apps.socle.views import PageFormulaireMixin
@@ -35,6 +37,7 @@ from .forms import (
     FormulaireOperation,
     FormulaireRegle,
     FormulaireReleve,
+    FormulaireTransfert,
     FormulaireVirement,
 )
 from .importation import ErreurImport, depuis_session, lire_releve, vers_session
@@ -44,6 +47,7 @@ from .services import importation as service_importation
 from .services import operations as service_operations
 from .services import regles as service_regles
 from .services import soldes as service_soldes
+from .services import transfert as service_transfert
 from .services.regroupement import regrouper_par_etablissement
 
 # --- Comptes ---------------------------------------------------------------
@@ -422,3 +426,47 @@ class VueAppliquerRegles(AccesFoyerMixin, View):
             % {"n": nombre},
         )
         return redirect("banque:regles")
+
+
+# --- Déplacer des comptes vers un autre foyer --------------------------------
+
+
+class VueTransfererComptes(AccesFoyerMixin, FormView):
+    """Aperçu de ce qui va être déplacé, puis déplacement sur confirmation."""
+
+    # Retirer un compte d'un foyer touche tous ses membres : réservé aux administrateurs.
+    role_lecture = Role.ADMINISTRATEUR
+    role_ecriture = Role.ADMINISTRATEUR
+    template_name = "banque/transfert.html"
+    form_class = FormulaireTransfert
+
+    def get_form_kwargs(self) -> dict[str, Any]:
+        arguments = super().get_form_kwargs()
+        arguments["foyer"] = self.foyer
+        arguments["adhesions"] = self.request.adhesions  # type: ignore[attr-defined]
+        return arguments
+
+    def get_initial(self) -> dict[str, Any]:
+        return {"comptes": self.request.GET.getlist("compte")}
+
+    def form_valid(self, form: FormulaireTransfert) -> HttpResponse:
+        comptes = list(form.cleaned_data["comptes"])
+        destination = form.cleaned_data["destination"]
+        if "confirmer" not in self.request.POST:
+            bilan = service_transfert.preparer(comptes, self.foyer, destination)
+            return self.render_to_response(self.get_context_data(form=form, bilan=bilan))
+        bilan = service_transfert.transferer(
+            comptes, self.foyer, destination, copier_regles=form.cleaned_data["copier_regles"]
+        )
+        # On suit les comptes : le foyer d'arrivée devient le foyer courant.
+        self.request.session[CLE_SESSION_FOYER] = destination.pk
+        messages.success(
+            self.request,
+            ngettext(
+                "%(n)d compte déplacé vers « %(foyer)s ».",
+                "%(n)d comptes déplacés vers « %(foyer)s ».",
+                len(bilan.comptes),
+            )
+            % {"n": len(bilan.comptes), "foyer": destination.nom},
+        )
+        return redirect("banque:comptes")

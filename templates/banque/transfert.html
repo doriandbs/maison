@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% load i18n icones %}
+{% block titre %}{% translate "Déplacer des comptes" %}{% endblock %}
+{% block contenu %}
+<div class="en-tete">
+  <div>
+    <p class="surtitre"><a href="{% url 'banque:comptes' %}">{% translate "Comptes" %}</a></p>
+    <h1>{% translate "Déplacer vers un autre foyer" %}</h1>
+  </div>
+</div>
+<p class="aide">{% blocktranslate with foyer=adhesion_courante.foyer.nom %}Les comptes choisis quittent « {{ foyer }} » avec leurs opérations, relevés, documents et crédits. Ils ne sont pas copiés : ils n'existeront plus qu'à l'arrivée. Les catégories sont reprises par leur nom.{% endblocktranslate %}</p>
+
+{% if not form.fields.destination.queryset.exists %}
+<div class="carte"><p class="text-texte-discret">{% translate "Vous n'appartenez à aucun autre foyer où vous pouvez écrire. Créez-en un ou faites-vous inviter, puis revenez ici." %}</p></div>
+{% else %}
+<form method="post" class="grid items-start gap-6 lg:grid-cols-2">
+  <div class="carte space-y-4">
+    {% include "composants/formulaire.html" with formulaire=form %}
+    <button class="bouton-secondaire">{% translate "Voir ce qui sera déplacé" %}</button>
+  </div>
+
+  {% if bilan %}
+  <section class="carte space-y-4" aria-labelledby="titre-bilan" role="status">
+    <h2 id="titre-bilan">{% blocktranslate with foyer=form.cleaned_data.destination.nom %}Vers « {{ foyer }} »{% endblocktranslate %}</h2>
+    <dl class="grid grid-cols-2 gap-3 text-sm">
+      <div><dt class="text-texte-discret">{% translate "Comptes" %}</dt><dd class="text-lg font-semibold">{{ bilan.comptes|length }}</dd></div>
+      <div><dt class="text-texte-discret">{% translate "Opérations" %}</dt><dd class="text-lg font-semibold">{{ bilan.operations }}</dd></div>
+      <div><dt class="text-texte-discret">{% translate "Documents" %}</dt><dd class="text-lg font-semibold">{{ bilan.documents }}</dd></div>
+      <div><dt class="text-texte-discret">{% translate "Crédits" %}</dt><dd class="text-lg font-semibold">{{ bilan.prets }}</dd></div>
+    </dl>
+    {% if bilan.categories_creees %}
+    <div class="text-sm">
+      <p class="font-medium">{% blocktranslate count n=bilan.categories_creees|length %}{{ n }} catégorie sera créée à l'arrivée :{% plural %}{{ n }} catégories seront créées à l'arrivée :{% endblocktranslate %}</p>
+      <p class="text-texte-discret">{{ bilan.categories_creees|join:", " }}</p>
+    </div>
+    {% endif %}
+    {% for ancien, nouveau in bilan.renommes %}
+    <p class="text-sm">{% blocktranslate %}« {{ ancien }} » existe déjà là-bas : il deviendra « {{ nouveau }} ».{% endblocktranslate %}</p>
+    {% endfor %}
+    {% if bilan.virements_rompus %}
+    <p class="message-warning">{% icone "alerte" classe="size-5 shrink-0 text-alerte" %}<span>{% blocktranslate count n=bilan.virements_rompus %}{{ n }} virement interne relie ces comptes à un compte qui reste ici : il deviendra une opération simple de chaque côté, à classer.{% plural %}{{ n }} virements internes relient ces comptes à des comptes qui restent ici : ils deviendront des opérations simples de chaque côté, à classer.{% endblocktranslate %}</span></p>
+    {% endif %}
+    <button class="bouton-primaire" name="confirmer" value="1">{% icone "valider" classe="size-4" %}{% translate "Confirmer le déplacement" %}</button>
+  </section>
+  {% endif %}
+</form>
+{% endif %}
+{% endblock %}

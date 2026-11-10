@@ -7,7 +7,10 @@
     {% if comptes %}<p class="surtitre">{% blocktranslate count n=groupes|length %}{{ n }} établissement{% plural %}{{ n }} établissements{% endblocktranslate %}</p>{% endif %}
     <h1>{% translate "Comptes" %}</h1>
   </div>
-  {% if peut_modifier %}<a class="bouton-primaire" href="{% url 'banque:ajouter_compte' %}">{% icone "plus" classe="size-4" %}{% translate "Ajouter un compte" %}</a>{% endif %}
+  <span class="flex flex-wrap gap-2">
+    {% if peut_administrer and adhesions|length > 1 and comptes %}<a class="bouton-secondaire" href="{% url 'banque:transferer_comptes' %}">{% translate "Déplacer vers un autre foyer" %}</a>{% endif %}
+    {% if peut_modifier %}<a class="bouton-primaire" href="{% url 'banque:ajouter_compte' %}">{% icone "plus" classe="size-4" %}{% translate "Ajouter un compte" %}</a>{% endif %}
+  </span>
 </div>
 
 {% if comptes %}

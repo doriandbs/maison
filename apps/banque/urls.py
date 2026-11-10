@@ -8,6 +8,7 @@ urlpatterns = [
     path("comptes/", views.VueComptes.as_view(), name="comptes"),
     path("comptes/ajouter/", views.VueAjouterCompte.as_view(), name="ajouter_compte"),
     path("comptes/<int:pk>/", views.VueCompte.as_view(), name="compte"),
+    path("comptes/deplacer/", views.VueTransfererComptes.as_view(), name="transferer_comptes"),
     path("comptes/<int:pk>/modifier/", views.VueModifierCompte.as_view(), name="modifier_compte"),
     path("comptes/<int:pk>/archiver/", views.VueArchiverCompte.as_view(), name="archiver_compte"),
     path("comptes/<int:pk>/releves/", views.VueAjouterReleve.as_view(), name="ajouter_releve"),

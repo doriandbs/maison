@@ -264,3 +264,28 @@ class FormulaireRegle(FormulaireDeFoyer):
         if doublon.exists():
             raise forms.ValidationError(_("Une règle existe déjà pour ce motif."))
         return motif
+
+
+class FormulaireTransfert(forms.Form):
+    destination = forms.ModelChoiceField(label=_("Vers le foyer"), queryset=Foyer.objects.none())
+    comptes = forms.ModelMultipleChoiceField(
+        label=_("Comptes à déplacer"),
+        queryset=Compte.objects.none(),
+        widget=forms.CheckboxSelectMultiple,
+    )
+    copier_regles = forms.BooleanField(
+        label=_("Recopier aussi les règles de catégorisation automatique"),
+        required=False,
+        initial=True,
+    )
+
+    def __init__(self, *args: Any, foyer: Foyer, adhesions: list[Any], **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        from apps.foyers.models import Role
+
+        # Seuls les foyers où l'utilisateur peut écrire, jamais celui d'un autre.
+        possibles = [
+            a.foyer_id for a in adhesions if a.foyer_id != foyer.pk and a.a_au_moins(Role.MEMBRE)
+        ]
+        self.fields["destination"].queryset = Foyer.objects.filter(pk__in=possibles)  # type: ignore[attr-defined]
+        self.fields["comptes"].queryset = Compte.objects.du_foyer(foyer)  # type: ignore[attr-defined]
