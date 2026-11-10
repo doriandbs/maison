@@ -53,3 +53,18 @@ def test_icone_decorative():
 def test_icone_inconnue():
     with pytest.raises(KeyError):
         icone("inexistante")
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("url", ["/compte/connexion/", "/sante/", "/page-inexistante/"])
+def test_aucune_page_n_est_indexable(client, url):
+    reponse = client.get(url)
+
+    assert "noindex" in reponse["X-Robots-Tag"]
+
+
+@pytest.mark.django_db
+def test_la_page_publique_porte_aussi_la_balise(client):
+    assert (
+        '<meta name="robots" content="noindex' in client.get("/compte/connexion/").content.decode()
+    )
