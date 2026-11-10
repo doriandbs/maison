@@ -1,0 +1,10 @@
+[Unit]
+Description=Maison : purge quotidienne des sessions expirées
+
+[Timer]
+OnCalendar=*-*-* 04:30
+RandomizedDelaySec=15min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

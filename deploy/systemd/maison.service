@@ -1,0 +1,31 @@
+[Unit]
+Description=Maison (gunicorn)
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=maison
+Group=maison
+WorkingDirectory=@APP@
+# La configuration est lue par Django dans @APP@/.env, lien vers /etc/maison/maison.env.
+# 1 vCPU : 2 processus × 2 fils suffisent et tiennent dans quelques centaines de Mo.
+ExecStart=@APP@/.venv/bin/gunicorn config.wsgi:application \
+    --bind 127.0.0.1:@PORT@ \
+    --workers 2 --threads 2 --timeout 60 \
+    --access-logfile - --error-logfile -
+Restart=on-failure
+RestartSec=5
+
+# Durcissement : le service ne peut écrire que dans le dossier des documents.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=@MEDIA@
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+
+[Install]
+WantedBy=multi-user.target

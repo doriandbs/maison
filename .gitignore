@@ -12,3 +12,5 @@ node_modules/
 staticfiles/
 static/css/app.css
 media/
+.python/
+.outils/

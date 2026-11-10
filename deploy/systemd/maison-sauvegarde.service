@@ -1,0 +1,11 @@
+[Unit]
+Description=Maison : sauvegarde restic (base + documents)
+After=postgresql.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# root : lecture de la base via l'utilisateur postgres et des documents de tous les foyers.
+ExecStart=@APP@/deploy/sauvegarde/sauvegarde.sh
+Nice=10
+IOSchedulingClass=idle

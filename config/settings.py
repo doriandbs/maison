@@ -160,3 +160,7 @@ if HTTPS_OBLIGATOIRE:
     SECURE_HSTS_SECONDS = 60 * 60 * 24 * 365
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_REDIRECT_EXEMPT = [r"^sante/$"]
+
+# Inscrire le domaine dans la liste « preload » des navigateurs est quasi irréversible :
+# c'est un choix à faire à la main, pas un réglage par défaut.
+SILENCED_SYSTEM_CHECKS = ["security.W021"]

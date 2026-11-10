@@ -117,3 +117,4 @@ Ne commence pas la V2 tant que la V1 n'est pas déployable et testée.
 - Isolation des foyers, rôles, foyer principal : voir `docs/adr/0002-isolation-des-foyers.md`.
 - Modèle fonctionnel de la V1 : voir `docs/adr/0003-modele-fonctionnel-v1.md`.
 - Pas de Docker, ni en développement ni en production.
+- nginx (déjà présent sur le VPS) à la place de Caddy : voir `docs/adr/0004-nginx-plutot-que-caddy.md`.

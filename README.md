@@ -44,4 +44,7 @@ Les tests utilisent la base désignée par `DATABASE_URL`. Sans PostgreSQL sous 
 
 ## Documentation
 
+- Mise en production : [docs/deploiement.md](docs/deploiement.md).
+- Sauvegardes et restauration : [docs/sauvegarde-restauration.md](docs/sauvegarde-restauration.md).
+
 Les décisions structurantes sont dans [docs/adr/](docs/adr/).
