@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+db.sqlite3
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+node_modules/
+staticfiles/
+static/css/app.css
+media/

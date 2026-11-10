@@ -1,0 +1,12 @@
+{
+  "name": "maison",
+  "private": true,
+  "scripts": {
+    "css": "tailwindcss -i ./assets/css/app.css -o ./static/css/app.css --minify",
+    "css:veille": "tailwindcss -i ./assets/css/app.css -o ./static/css/app.css --watch"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.1.0",
+    "tailwindcss": "^4.1.0"
+  }
+}
