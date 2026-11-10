@@ -21,18 +21,28 @@ class Encours:
     a_date: date
 
     @property
+    def a_commence(self) -> bool:
+        """Le prêt (et le bien qu'il finance) existe à partir du mois qui précède la
+        1re échéance : avant, ni dette ni bien, sinon le patrimoine plongerait à tort."""
+        return self.a_date >= ajouter_mois(self.pret.premiere_echeance, -1)
+
+    @property
     def capital_restant_du(self) -> Decimal:
+        if not self.a_commence:
+            return ZERO
         return self.tableau.capital_restant_du(self.a_date)
 
     @property
     def part_remboursee(self) -> Decimal:
         """En %, de 0 à 100 (le capital dû dépasse l'emprunt pendant un différé total)."""
+        if not self.a_commence:
+            return Decimal(0)
         rembourse = self.pret.capital - self.capital_restant_du
         return min(max(rembourse / self.pret.capital * 100, Decimal(0)), Decimal(100))
 
     @property
     def est_termine(self) -> bool:
-        return self.capital_restant_du == 0
+        return self.a_commence and self.capital_restant_du == 0
 
     @property
     def prochaine_echeance(self) -> Echeance | None:
@@ -62,15 +72,8 @@ def total_dettes(encours: Iterable[Encours]) -> Decimal:
 
 
 def total_biens(encours: Iterable[Encours]) -> Decimal:
-    """Valeur des biens financés, comptée à partir du mois qui précède la 1re échéance."""
-    return sum(
-        (
-            e.pret.valeur_bien
-            for e in encours
-            if e.pret.valeur_bien and e.a_date >= ajouter_mois(e.pret.premiere_echeance, -1)
-        ),
-        ZERO,
-    )
+    """Valeur des biens financés, à partir du même moment que la dette (voir `a_commence`)."""
+    return sum((e.pret.valeur_bien for e in encours if e.pret.valeur_bien and e.a_commence), ZERO)
 
 
 @dataclass

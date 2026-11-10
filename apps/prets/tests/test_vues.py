@@ -220,6 +220,14 @@ class TestPatrimoineNet:
         assert total_biens(encours_du_foyer(alice.foyer, date(2025, 11, 30))) == 0
         assert total_biens(encours_du_foyer(alice.foyer, date(2025, 12, 5))) == D("250000")
 
+    def test_un_pret_qui_n_a_pas_commence_ne_pese_pas_et_n_est_pas_termine(self, alice):
+        FabriquePret(foyer=alice.foyer, valeur_bien=D("250000"), premiere_echeance=date(2027, 1, 5))
+
+        encours = encours_du_foyer(alice.foyer, date(2026, 6, 1))
+
+        assert total_dettes(encours) == total_biens(encours) == 0
+        assert not encours[0].est_termine and encours[0].part_remboursee == 0
+
     def test_sans_credit(self, alice):
         resultat = synthese(alice.foyer, date(2026, 1, 1))
 

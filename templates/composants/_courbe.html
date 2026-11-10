@@ -1,0 +1,25 @@
+{% load formats %}
+{% comment %}Courbe d'une série dans le temps. Paramètres : courbe (socle.graphiques.Courbe), titre.{% endcomment %}
+{% load l10n %}
+{# Coordonnées SVG : toujours avec un point décimal, jamais « 186,13 ». #}
+{% localize off %}<div class="graphique-defilant">
+<svg class="graphique" viewBox="0 0 {{ courbe.largeur }} {{ courbe.hauteur }}" role="img" aria-label="{{ titre }}">
+  {% for g in courbe.graduations %}
+  <line class="grille" x1="{{ courbe.gauche }}" x2="{{ courbe.droite }}" y1="{{ g.y }}" y2="{{ g.y }}"/>
+  <text class="axe" x="{{ courbe.gauche|add:'-8' }}" y="{{ g.y }}" dy="0.32em" text-anchor="end">{{ g.texte }}</text>
+  {% endfor %}
+  {% if courbe.y_zero %}<line class="zero" x1="{{ courbe.gauche }}" x2="{{ courbe.droite }}" y1="{{ courbe.y_zero }}" y2="{{ courbe.y_zero }}"/>{% endif %}
+  {% for e in courbe.etiquettes_x %}<text class="axe" x="{{ e.x }}" y="{{ courbe.hauteur|add:'-6' }}" text-anchor="middle">{{ e.texte }}</text>{% endfor %}
+  <path class="aire" d="{{ courbe.aire }}"/>
+  <path class="trait" d="{{ courbe.chemin }}" pathLength="1"/>
+  <circle class="point" cx="{{ courbe.dernier.x }}" cy="{{ courbe.dernier.y }}" r="4"/>
+  <text class="valeur" x="{{ courbe.dernier.x }}" y="{{ courbe.dernier.y }}" dy="-12" text-anchor="end">{{ courbe.dernier.valeur|euros }}</text>
+  {% for p in courbe.points %}
+  <g class="zone" tabindex="0" data-infobulle="{{ p.infobulle }}" aria-label="{{ p.libelle }} : {{ p.valeur|euros }}">
+    <rect x="{{ p.zone_x }}" y="0" width="{{ p.zone_largeur }}" height="{{ courbe.bas }}" fill="transparent"/>
+    <line class="curseur" x1="{{ p.x }}" x2="{{ p.x }}" y1="8" y2="{{ courbe.bas }}"/>
+    <circle class="curseur-point" cx="{{ p.x }}" cy="{{ p.y }}" r="4"/>
+  </g>
+  {% endfor %}
+</svg>
+</div>{% endlocalize %}

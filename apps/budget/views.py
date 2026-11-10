@@ -13,6 +13,7 @@ from apps.banque.models import Categorie, Nature
 from apps.foyers.acces import AccesFoyerMixin
 
 from .forms import FormulairePrevisionnel
+from .services.comparaison import MESURES, histogramme_annuel
 from .services.previsionnel import budgets_du_mois, enregistrer_budgets
 from .services.recap import recap_annuel
 from .services.tableau import tableau_mensuel
@@ -61,9 +62,15 @@ class VueRecapAnnuel(AccesFoyerMixin, TemplateView):
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         contexte = super().get_context_data(**kwargs)
         annee = _annee_ou_404(kwargs["annee"])
-        contexte["recap"] = recap_annuel(self.foyer, annee)
+        recap = recap_annuel(self.foyer, annee)
+        contexte["recap"] = recap
         contexte["annee_precedente"] = annee - 1
         contexte["annee_suivante"] = annee + 1
+        mesure = self.request.GET.get("mesure")
+        contexte["mesure"] = mesure if mesure in MESURES else "depenses"
+        contexte["histogramme"] = histogramme_annuel(
+            recap, recap_annuel(self.foyer, annee - 1), contexte["mesure"], date.today()
+        )
         return contexte
 
 

@@ -47,6 +47,9 @@
   --serie-4: #e11d48;
   --serie-5: #0ea5e9;
   --serie-6: #94a3b8;
+  /* Courbes et histogrammes : paire vérifiée par le validateur (daltonisme, contraste). */
+  --graphe-1: #0d9488;
+  --graphe-2: #6366f1;
 
   --ombre-carte: 0 1px 2px rgb(15 23 42 / 0.04), 0 6px 20px -8px rgb(15 23 42 / 0.08);
   --ombre-haute: 0 2px 4px rgb(15 23 42 / 0.05), 0 18px 40px -12px rgb(15 23 42 / 0.18);
@@ -86,6 +89,8 @@
     --serie-4: #fb7185;
     --serie-5: #38bdf8;
     --serie-6: #64748b;
+    --graphe-1: #12a594;
+    --graphe-2: #6f74f0;
 
     --ombre-carte: 0 1px 0 rgb(255 255 255 / 0.03) inset, 0 8px 24px -10px rgb(0 0 0 / 0.6);
     --ombre-haute: 0 1px 0 rgb(255 255 255 / 0.05) inset, 0 20px 44px -12px rgb(0 0 0 / 0.7);
@@ -492,6 +497,108 @@
     animation: deriver 16s ease-in-out infinite alternate;
   }
 
+  /* Graphiques SVG (géométrie calculée par socle/graphiques.py) */
+  .graphique-defilant {
+    @apply -mx-1 overflow-x-auto px-1;
+  }
+  .graphique {
+    @apply block h-auto w-full min-w-[38rem] overflow-visible;
+    font-family: inherit;
+  }
+  .graphique .grille {
+    stroke: var(--bordure);
+    stroke-width: 1;
+  }
+  .graphique .zero {
+    stroke: var(--bordure-forte);
+    stroke-width: 1;
+  }
+  .graphique .axe {
+    fill: var(--texte-discret);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+  }
+  .graphique .valeur {
+    fill: var(--texte);
+    font-size: 12px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    paint-order: stroke;
+    stroke: var(--surface);
+    stroke-width: 4px;
+  }
+  .graphique .trait {
+    fill: none;
+    stroke: var(--graphe-1);
+    stroke-width: 2;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+    stroke-dasharray: 1;
+    animation: tracer 1.2s var(--ease-ressort) both;
+  }
+  .graphique .aire {
+    fill: var(--graphe-1);
+    opacity: 0.1;
+    animation: fondu-entree 0.8s 0.4s ease-out both;
+  }
+  .graphique .point,
+  .graphique .curseur-point {
+    fill: var(--graphe-1);
+    stroke: var(--surface);
+    stroke-width: 2;
+  }
+  .graphique .zone {
+    cursor: crosshair;
+    outline: none;
+  }
+  .graphique .curseur,
+  .graphique .curseur-point {
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .graphique .curseur {
+    stroke: var(--texte-discret);
+    stroke-width: 1;
+  }
+  .graphique .zone:hover .curseur,
+  .graphique .zone:hover .curseur-point,
+  .graphique .zone:focus-visible .curseur,
+  .graphique .zone:focus-visible .curseur-point {
+    opacity: 1;
+  }
+  .graphique .barre {
+    transform-box: fill-box;
+    transform-origin: bottom;
+    transition: opacity 0.15s;
+    animation: pousser 0.7s var(--ease-ressort) both;
+  }
+  .graphique .barre-1 {
+    fill: var(--graphe-1);
+  }
+  .graphique .barre-2 {
+    fill: var(--graphe-2);
+  }
+  .graphique .zone-barres {
+    cursor: default;
+  }
+  .graphique .zone-barres:hover .barre,
+  .graphique .zone-barres:focus-visible .barre {
+    opacity: 0.75;
+  }
+  .legende {
+    @apply flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-texte-discret;
+  }
+  .cle-legende {
+    @apply inline-block size-2.5 rounded-sm align-middle;
+  }
+  .infobulle {
+    @apply pointer-events-none fixed z-50 rounded-xl border border-bordure bg-surface/95 px-3 py-2 text-sm whitespace-pre-line
+      text-texte-discret shadow-haute backdrop-blur-xl;
+  }
+  .infobulle::first-line {
+    @apply font-semibold text-texte;
+  }
+
   /* Entrée en cascade des blocs d'une page */
   .cascade > * {
     animation: apparaitre 0.55s var(--ease-ressort) both;
@@ -518,6 +625,16 @@
   from {
     opacity: 0;
     transform: translateY(10px);
+  }
+}
+@keyframes tracer {
+  from {
+    stroke-dashoffset: 1;
+  }
+}
+@keyframes pousser {
+  from {
+    transform: scaleY(0);
   }
 }
 @keyframes remplir {

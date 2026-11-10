@@ -81,6 +81,36 @@
   </a>
 </section>
 
+<section class="carte space-y-4" aria-labelledby="titre-evolution">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <h2 id="titre-evolution">{% if synthese.a_des_credits %}{% translate "Évolution du patrimoine net" %}{% else %}{% translate "Évolution du patrimoine" %}{% endif %}</h2>
+      <p class="text-xs text-texte-discret">{% translate "en fin de mois" %}</p>
+    </div>
+    <nav class="inline-flex rounded-xl border border-bordure-forte bg-surface p-0.5 text-sm" aria-label="{% translate 'Période' %}">
+      {% for nombre in periodes %}
+      <a class="rounded-lg px-3 py-1 no-underline hover:no-underline {% if nombre == periode %}bg-primaire-50 font-medium text-primaire-600{% else %}text-texte-discret hover:text-texte{% endif %}" href="?periode={{ nombre }}" {% if nombre == periode %}aria-current="true"{% endif %}>{% blocktranslate %}{{ nombre }} mois{% endblocktranslate %}</a>
+      {% endfor %}
+    </nav>
+  </div>
+  {% if courbe %}
+    {% translate "Patrimoine en fin de mois" as titre_courbe %}
+    {% include "composants/_courbe.html" with titre=titre_courbe %}
+    <details class="text-sm">
+      <summary class="cursor-pointer text-primaire-600">{% translate "Voir les valeurs" %}</summary>
+      <table class="tableau mt-2">
+        <tbody>
+          {% for point in evolution reversed %}
+          <tr><td>{% if point.en_cours %}{% translate "Aujourd'hui" %}{% else %}{{ point.date|date:"F Y"|capfirst }}{% endif %}</td><td class="montant">{{ point.valeur|euros }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </details>
+  {% else %}
+    <p class="py-6 text-center text-sm text-texte-discret">{% translate "La courbe apparaîtra à la fin du premier mois suivi : elle part de la date du solde initial de vos comptes." %}</p>
+  {% endif %}
+</section>
+
 {% if synthese.alertes %}
 <section class="message-error items-center" role="status">
   {% icone "alerte" classe="size-5 shrink-0" %}

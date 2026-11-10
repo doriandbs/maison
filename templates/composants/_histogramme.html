@@ -1,0 +1,18 @@
+{% comment %}Histogramme groupé à deux séries. Paramètres : histogramme, titre, noms (série 1, série 2).{% endcomment %}
+{% load l10n %}
+{# Coordonnées SVG : toujours avec un point décimal, jamais « 186,13 ». #}
+{% localize off %}<div class="graphique-defilant">
+<svg class="graphique" viewBox="0 0 {{ histogramme.largeur }} {{ histogramme.hauteur }}" role="img" aria-label="{{ titre }}">
+  {% for g in histogramme.graduations %}
+  <line class="grille" x1="{{ histogramme.gauche }}" x2="{{ histogramme.droite }}" y1="{{ g.y }}" y2="{{ g.y }}"/>
+  <text class="axe" x="{{ histogramme.gauche|add:'-8' }}" y="{{ g.y }}" dy="0.32em" text-anchor="end">{{ g.texte }}</text>
+  {% endfor %}
+  {% for e in histogramme.etiquettes_x %}<text class="axe" x="{{ e.x }}" y="{{ histogramme.hauteur|add:'-6' }}" text-anchor="middle">{{ e.texte }}</text>{% endfor %}
+  {% for groupe in histogramme.groupes %}
+  <g class="zone zone-barres" tabindex="0" data-infobulle="{{ groupe.infobulle }}" aria-label="{{ groupe.infobulle }}">
+    <rect x="{{ groupe.zone_x }}" y="0" width="{{ groupe.zone_largeur }}" height="{{ histogramme.bas }}" fill="transparent"/>
+    {% for barre in groupe.barres %}<path class="barre barre-{{ barre.serie }}" d="{{ barre.chemin }}"/>{% endfor %}
+  </g>
+  {% endfor %}
+</svg>
+</div>{% endlocalize %}

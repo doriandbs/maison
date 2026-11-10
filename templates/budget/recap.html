@@ -10,6 +10,28 @@
   </nav>
 </div>
 
+<section class="carte space-y-4" aria-labelledby="titre-comparaison">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <h2 id="titre-comparaison">{% if mesure == "revenus" %}{% translate "Revenus par mois" %}{% else %}{% translate "Dépenses par mois" %}{% endif %}</h2>
+    <nav class="inline-flex rounded-xl border border-bordure-forte bg-surface p-0.5 text-sm" aria-label="{% translate 'Mesure' %}">
+      <a class="rounded-lg px-3 py-1 no-underline hover:no-underline {% if mesure == 'depenses' %}bg-primaire-50 font-medium text-primaire-600{% else %}text-texte-discret hover:text-texte{% endif %}" href="?mesure=depenses">{% translate "Dépenses" %}</a>
+      <a class="rounded-lg px-3 py-1 no-underline hover:no-underline {% if mesure == 'revenus' %}bg-primaire-50 font-medium text-primaire-600{% else %}text-texte-discret hover:text-texte{% endif %}" href="?mesure=revenus">{% translate "Revenus" %}</a>
+    </nav>
+  </div>
+  {% if histogramme %}
+    {# Légende dans l'ordre des barres : année précédente à gauche, année affichée à droite. #}
+    <p class="legende">
+      <span><span class="cle-legende" style="background: var(--graphe-2)"></span> {{ annee_precedente }}</span>
+      <span><span class="cle-legende" style="background: var(--graphe-1)"></span> {{ recap.annee }}</span>
+    </p>
+    {% blocktranslate with annee=recap.annee avant=annee_precedente asvar titre_histogramme %}Comparaison mensuelle {{ annee }} et {{ avant }}{% endblocktranslate %}
+    {% include "composants/_histogramme.html" with titre=titre_histogramme %}
+    <p class="aide">{% translate "Les valeurs exactes sont dans le tableau « Mois par mois » ci-dessous." %}</p>
+  {% else %}
+    <p class="py-6 text-center text-sm text-texte-discret">{% translate "Aucune opération sur ces deux années." %}</p>
+  {% endif %}
+</section>
+
 <div class="carte overflow-x-auto p-0">
   <table class="tableau">
     <thead>
