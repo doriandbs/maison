@@ -85,6 +85,9 @@ TAILLE_MAX_DOCUMENT_MO=10
 DEFAULT_FROM_EMAIL=Maison <maison@$DOMAINE>
 INSCRIPTION_OUVERTE=True
 DERRIERE_PROXY=True
+DOUBLE_AUTH_OBLIGATOIRE=True
+# Adresse de l'admin Django, volontairement imprévisible.
+ADMIN_CHEMIN=gestion-$(aleatoire 6)/
 EOF
     umask 022
     chown root:"$UTILISATEUR" "$CONFIG/maison.env"

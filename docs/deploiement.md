@@ -41,7 +41,9 @@ manquent (Django 5.2 accepte PostgreSQL 14 et plus : la version 15 de Debian 12 
    `/etc/maison/maison.env` (`EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`,
    `EMAIL_USE_TLS`), puis `sudo systemctl restart maison`. Vérifier l'envoi avec
    `sudo -u maison .venv/bin/python manage.py sendtestemail votre@adresse.fr`.
-6. Créer un compte administrateur (accès à `/admin/`) :
+6. Créer un compte administrateur (accès à l'admin, dont l'adresse est `ADMIN_CHEMIN` dans
+   `/etc/maison/maison.env`) ; il devra configurer la double authentification à sa première
+   connexion, comme tout le monde :
    ```sh
    cd /opt/maison && sudo -u maison .venv/bin/python manage.py createsuperuser
    ```
@@ -57,6 +59,17 @@ Le script ne recrée ni la configuration ni le site nginx s'ils existent : il me
 dépendances, la feuille de style, les fichiers statiques, applique les migrations et redémarre
 le service. Si `deploy/nginx/maison.conf` a changé, reporter la modification à la main dans le
 site nginx (certbot l'a modifié, on ne l'écrase donc pas).
+
+## Double authentification perdue
+
+Si quelqu'un a perdu à la fois son téléphone et ses codes de secours, **après avoir vérifié son
+identité de vive voix** :
+
+```sh
+cd /srv/maison/maison && sudo -u maison .venv/bin/python manage.py retirer_double_auth adresse@exemple.fr
+```
+
+Il la reconfigurera à sa prochaine connexion. Personne ne peut le faire depuis le site.
 
 ## Supervision et diagnostic
 

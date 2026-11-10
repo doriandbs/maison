@@ -27,7 +27,8 @@ class IntergicielFoyerCourant:
 
     def __call__(self, request: HttpRequest) -> HttpResponse:
         adhesions: list[Adhesion] = []
-        if request.user.is_authenticated:
+        # Rien n'est chargé tant que la double authentification n'est pas passée.
+        if request.user.is_authenticated and getattr(request, "acces_complet", True):
             adhesions = list(
                 Adhesion.objects.filter(utilisateur=request.user)
                 .select_related("foyer")

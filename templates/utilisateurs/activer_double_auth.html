@@ -1,0 +1,38 @@
+{% extends "composants/page_etroite.html" %}
+{% load i18n %}
+{% block titre %}{% translate "Double authentification" %}{% endblock %}
+{% block carte %}
+<div class="space-y-1.5">
+  <h1>{% translate "Protégez votre compte" %}</h1>
+  <p class="text-texte-discret">{% translate "La double authentification est obligatoire : en plus du mot de passe, un code à 6 chiffres affiché par votre téléphone vous sera demandé. Un mot de passe volé ne suffit plus." %}</p>
+</div>
+
+<ol class="space-y-5">
+  <li class="space-y-1">
+    <p class="font-medium">1. {% translate "Installez une application d'authentification" %}</p>
+    <p class="aide mt-0">{% translate "Par exemple Google Authenticator, Microsoft Authenticator, ou le gestionnaire de mots de passe que vous utilisez déjà (Bitwarden, 1Password…)." %}</p>
+  </li>
+  <li class="space-y-3">
+    <p class="font-medium">2. {% translate "Scannez ce QR code avec l'application" %}</p>
+    {# Fond blanc en mode sombre aussi : certains lecteurs lisent mal un QR code inversé. #}
+    <div class="mx-auto w-fit rounded-2xl bg-white p-3 shadow-carte ring-1 ring-bordure">{{ qr_code|safe }}</div>
+    <details class="text-sm">
+      <summary class="cursor-pointer text-primaire-600">{% translate "Impossible de scanner ?" %}</summary>
+      <p class="aide">{% translate "Dans l'application, choisissez « saisir une clé » et recopiez :" %}</p>
+      <p class="mt-2 rounded-xl bg-surface-2 px-3 py-2 text-center font-mono text-sm tracking-wider break-all select-all">{{ cle }}</p>
+    </details>
+  </li>
+  <li class="space-y-3">
+    <p class="font-medium">3. {% translate "Saisissez le code affiché" %}</p>
+    <form method="post" class="space-y-4">
+      {% include "composants/formulaire.html" with formulaire=form %}
+      {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+      <button class="bouton-primaire w-full">{% translate "Activer" %}</button>
+    </form>
+  </li>
+</ol>
+<form method="post" action="{% url 'utilisateurs:deconnexion' %}" class="border-t border-bordure pt-4 text-sm">
+  {% csrf_token %}
+  <button class="cursor-pointer text-texte-discret hover:text-texte">{% translate "Se déconnecter" %}</button>
+</form>
+{% endblock %}

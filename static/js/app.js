@@ -50,6 +50,10 @@
     });
   }
 
+  document.addEventListener("click", (evenement) => {
+    if (evenement.target.closest("[data-imprimer]")) window.print();
+  });
+
   document.addEventListener("DOMContentLoaded", () => {
     if (!mouvementReduit) document.querySelectorAll("[data-compteur]").forEach(animerCompteur);
     brancherNotifications();

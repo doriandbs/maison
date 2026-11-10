@@ -23,4 +23,7 @@ STORAGES = {
 
 # Désactivés par défaut ; les tests qui les vérifient les réactivent explicitement.
 AXES_ENABLED = False
+# Les tests de la double authentification la réactivent ; les autres se connectent
+# avec force_login, comme un compte qui ne l'a pas encore configurée.
+DOUBLE_AUTH_OBLIGATOIRE = False
 RATELIMIT_ENABLE = False

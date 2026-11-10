@@ -1,0 +1,17 @@
+{% extends "composants/page_etroite.html" %}
+{% load i18n icones %}
+{% block titre %}{% translate "Codes de secours" %}{% endblock %}
+{% block carte %}
+<div class="space-y-1.5">
+  <h1>{% translate "Vos codes de secours" %}</h1>
+  <p class="text-texte-discret">{% translate "Si vous perdez votre téléphone, chacun de ces codes remplace une fois le code de l'application. Rangez-les dans un endroit sûr : ils ne seront plus jamais affichés." %}</p>
+</div>
+<ul class="grid grid-cols-2 gap-2 rounded-2xl bg-surface-2 p-4 text-center font-mono text-base tracking-widest ring-1 ring-bordure" aria-label="{% translate 'Codes de secours' %}">
+  {% for code in codes %}<li class="select-all">{{ code }}</li>{% endfor %}
+</ul>
+<p class="message-warning">{% icone "alerte" classe="size-5 shrink-0 text-alerte" %}<span>{% translate "Les anciens codes de secours ne fonctionnent plus." %}</span></p>
+<div class="flex flex-wrap gap-3">
+  <button type="button" class="bouton-secondaire" data-imprimer>{% translate "Imprimer" %}</button>
+  <a class="bouton-primaire flex-1" href="{{ suivante }}">{% translate "Je les ai rangés, continuer" %}</a>
+</div>
+{% endblock %}

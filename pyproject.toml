@@ -11,6 +11,8 @@ dependencies = [
     "gunicorn>=23; sys_platform != 'win32'",
     "django-axes[ipware]>=7.0",
     "django-ratelimit>=4.1",
+    "django-otp>=1.7",
+    "segno>=1.6",
 ]
 
 [dependency-groups]

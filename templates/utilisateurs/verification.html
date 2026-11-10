@@ -1,0 +1,23 @@
+{% extends "composants/page_etroite.html" %}
+{% load i18n icones %}
+{% block titre %}{% translate "Vérification" %}{% endblock %}
+{% block carte %}
+<div class="space-y-1.5">
+  <span class="vignette mb-3 size-11 rounded-2xl bg-primaire-50 text-primaire-600">{% icone "valider" classe="size-5" %}</span>
+  <h1>{% translate "Vérification en deux étapes" %}</h1>
+  <p class="text-texte-discret">{% translate "Ouvrez votre application d'authentification et saisissez le code affiché pour Maison." %}</p>
+</div>
+<form method="post" class="space-y-4">
+  {% include "composants/formulaire.html" with formulaire=form %}
+  {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+  <button class="bouton-primaire w-full">{% translate "Valider" %}</button>
+</form>
+<details class="text-sm">
+  <summary class="cursor-pointer text-primaire-600">{% translate "Téléphone indisponible ?" %}</summary>
+  <p class="aide">{% translate "Saisissez l'un de vos codes de secours (8 caractères) dans le même champ. Chaque code ne sert qu'une fois. Si vous les avez aussi perdus, contactez l'administrateur du site." %}</p>
+</details>
+<form method="post" action="{% url 'utilisateurs:deconnexion' %}" class="border-t border-bordure pt-4 text-sm">
+  {% csrf_token %}
+  <button class="cursor-pointer text-texte-discret hover:text-texte">{% translate "Se déconnecter" %}</button>
+</form>
+{% endblock %}

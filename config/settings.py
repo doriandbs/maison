@@ -24,6 +24,9 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "axes",
+    "django_otp",
+    "django_otp.plugins.otp_totp",
+    "django_otp.plugins.otp_static",
     "apps.socle",
     "apps.utilisateurs",
     "apps.foyers",
@@ -41,6 +44,8 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django_otp.middleware.OTPMiddleware",
+    "apps.utilisateurs.middleware.IntergicielDoubleAuthentification",
     "apps.foyers.middleware.IntergicielFoyerCourant",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -94,6 +99,15 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
+# Double authentification (codes TOTP + codes de secours), voir docs/adr/0005.
+DOUBLE_AUTH_OBLIGATOIRE = env.bool("DOUBLE_AUTH_OBLIGATOIRE", default=True)
+DUREE_APPAREIL_DE_CONFIANCE = 30 * 24 * 3600  # secondes
+OTP_TOTP_ISSUER = "Maison"
+# Freine les essais de codes : attente doublée à chaque échec (1 s, 2 s, 4 s…).
+OTP_TOTP_THROTTLE_FACTOR = 1
+OTP_STATIC_THROTTLE_FACTOR = 1
+# Adresse de l'admin Django, à rendre peu devinable en production.
+ADMIN_CHEMIN = env("ADMIN_CHEMIN", default="admin/")
 LOGIN_URL = "utilisateurs:connexion"
 LOGIN_REDIRECT_URL = "accueil"
 LOGOUT_REDIRECT_URL = "utilisateurs:connexion"

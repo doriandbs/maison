@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% load i18n icones %}
+{% block titre %}{% translate "Mon compte" %}{% endblock %}
+{% block contenu %}
+<div class="en-tete">
+  <div>
+    <p class="surtitre">{{ user.email }}</p>
+    <h1>{% translate "Mon compte" %}</h1>
+  </div>
+</div>
+
+<div class="grid gap-6 lg:grid-cols-2">
+  <section class="carte space-y-4" aria-labelledby="titre-mot-de-passe">
+    <h2 id="titre-mot-de-passe">{% translate "Mot de passe" %}</h2>
+    <p class="text-sm text-texte-discret">{% translate "Le changer ferme vos autres sessions et oublie les appareils mémorisés." %}</p>
+    <a class="bouton-secondaire" href="{% url 'utilisateurs:changer_mot_de_passe' %}">{% icone "modifier" classe="size-4" %}{% translate "Changer de mot de passe" %}</a>
+  </section>
+
+  <section class="carte space-y-4" aria-labelledby="titre-double-auth">
+    <div class="flex items-center justify-between gap-3">
+      <h2 id="titre-double-auth">{% translate "Double authentification" %}</h2>
+      {% if double_auth_active %}<span class="pastille">{% icone "valider" classe="size-3" %}{% translate "activée" %}</span>{% endif %}
+    </div>
+
+    <div class="liste text-sm">
+      <div class="ligne">
+        <span>
+          <span class="block font-medium">{% translate "Codes de secours" %}</span>
+          <span class="block text-texte-discret">{% blocktranslate count n=codes_restants %}{{ n }} code restant{% plural %}{{ n }} codes restants{% endblocktranslate %}</span>
+        </span>
+        <form method="post" action="{% url 'utilisateurs:codes_secours' %}">
+          {% csrf_token %}
+          <button class="bouton-secondaire">{% translate "En générer de nouveaux" %}</button>
+        </form>
+      </div>
+      <div class="ligne">
+        <span>
+          <span class="block font-medium">{% translate "Appareils mémorisés" %}</span>
+          <span class="block text-texte-discret">{% translate "Redemander le code partout, par exemple après avoir utilisé un ordinateur prêté." %}</span>
+        </span>
+        <form method="post" action="{% url 'utilisateurs:oublier_appareils' %}">
+          {% csrf_token %}
+          <button class="bouton-secondaire">{% translate "Tout oublier" %}</button>
+        </form>
+      </div>
+    </div>
+
+    <details class="rounded-xl border border-bordure p-4">
+      <summary class="cursor-pointer text-sm font-medium">{% translate "Changer de téléphone" %}</summary>
+      <form method="post" action="{% url 'utilisateurs:changer_telephone' %}" class="mt-4 space-y-4">
+        <p class="aide mt-0">{% translate "L'application actuelle et vos codes de secours cesseront de fonctionner ; vous configurerez aussitôt le nouveau téléphone." %}</p>
+        {% include "composants/formulaire.html" with formulaire=formulaire_telephone %}
+        <button class="bouton-danger">{% translate "Configurer un nouveau téléphone" %}</button>
+      </form>
+    </details>
+  </section>
+</div>
+{% endblock %}

@@ -30,7 +30,7 @@
       <form method="post" action="{% url 'utilisateurs:deconnexion' %}" class="mt-auto flex items-center gap-3 px-2">
         {% csrf_token %}
         <span class="grid size-9 shrink-0 place-items-center rounded-full bg-surface-2 text-sm font-semibold ring-1 ring-bordure" aria-hidden="true">{{ user.email|first|upper }}</span>
-        <span class="min-w-0 flex-1 truncate text-sm text-texte-discret">{{ user.email }}</span>
+        <a class="min-w-0 flex-1 truncate text-sm text-texte-discret hover:text-texte" href="{% url 'utilisateurs:compte' %}" title="{% translate 'Mon compte' %}">{{ user.email }}</a>
         <button class="bouton-discret bouton-icone" title="{% translate 'Déconnexion' %}">{% icone "deconnexion" %}<span class="sr-only">{% translate "Déconnexion" %}</span></button>
       </form>
     </aside>
@@ -72,6 +72,7 @@
         <a class="element-menu justify-start gap-3" href="{{ entree.url }}" {% if entree.actif %}aria-current="page"{% endif %}>{% icone entree.icone classe="size-5 text-texte-discret" %}{{ entree.libelle }}</a>
         {% endif %}{% endfor %}
         <a class="element-menu justify-start gap-3" href="{% url 'foyers:liste' %}">{% icone "foyer" classe="size-5 text-texte-discret" %}{% translate "Mes foyers" %}</a>
+        <a class="element-menu justify-start gap-3" href="{% url 'utilisateurs:compte' %}">{% icone "membres" classe="size-5 text-texte-discret" %}{% translate "Mon compte" %}</a>
         <div class="my-1 border-t border-bordure"></div>
         <form method="post" action="{% url 'utilisateurs:deconnexion' %}">
           {% csrf_token %}

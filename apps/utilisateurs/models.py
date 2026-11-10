@@ -41,6 +41,11 @@ class Utilisateur(AbstractUser):
 
     username = None  # type: ignore[assignment]
     email = models.EmailField(_("adresse e-mail"), unique=True)
+    # Les appareils mémorisés avant cette date doivent de nouveau saisir un code
+    # (changement de mot de passe ou de téléphone, « oublier mes appareils »).
+    appareils_revoques_le = models.DateTimeField(
+        _("appareils de confiance révoqués le"), null=True, blank=True, editable=False
+    )
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
