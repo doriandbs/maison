@@ -75,9 +75,13 @@ CSRF_TRUSTED_ORIGINS=https://$DOMAINE
 DATABASE_URL=postgres://$UTILISATEUR:$mot_de_passe@localhost:5432/$BASE
 MEDIA_ROOT=$MEDIA
 TAILLE_MAX_DOCUMENT_MO=10
-# À renseigner pour les invitations et la réinitialisation des mots de passe :
-# EMAIL_URL=smtp+tls://utilisateur:motdepasse@smtp.example.org:587
-EMAIL_URL=consolemail://
+# À renseigner pour les invitations et la réinitialisation des mots de passe
+# (sans EMAIL_HOST, les e-mails ne partent pas : ils s'écrivent dans journalctl -u maison) :
+# EMAIL_HOST=smtp-relay.brevo.com
+# EMAIL_PORT=587
+# EMAIL_HOST_USER=identifiant
+# EMAIL_HOST_PASSWORD=cle-smtp
+# EMAIL_USE_TLS=true
 DEFAULT_FROM_EMAIL=Maison <maison@$DOMAINE>
 INSCRIPTION_OUVERTE=True
 DERRIERE_PROXY=True

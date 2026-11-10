@@ -143,8 +143,20 @@ TAILLE_MAX_DOCUMENT = env.int("TAILLE_MAX_DOCUMENT_MO", default=10) * 1024 * 102
 DATA_UPLOAD_MAX_MEMORY_SIZE = 2_621_440
 
 # --- E-mail ---
-EMAIL_CONFIG = env.email_url("EMAIL_URL", default="consolemail://")
-vars().update(EMAIL_CONFIG)
+# Deux façons de configurer l'envoi : variables séparées (EMAIL_HOST…), prioritaires,
+# ou une seule EMAIL_URL. Sans rien, les e-mails s'affichent dans la console.
+if env("EMAIL_HOST", default=""):
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+    EMAIL_HOST = env("EMAIL_HOST")
+    EMAIL_PORT = env.int("EMAIL_PORT", default=587)
+    EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
+    EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
+    EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
+    EMAIL_USE_SSL = env.bool("EMAIL_USE_SSL", default=False)
+else:
+    vars().update(env.email_url("EMAIL_URL", default="consolemail://"))
+# Un serveur SMTP qui ne répond pas ne doit pas bloquer un processus gunicorn.
+EMAIL_TIMEOUT = 10
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="Maison <maison@localhost>")
 
 # --- Sécurité transport ---

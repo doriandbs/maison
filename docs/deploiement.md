@@ -38,7 +38,9 @@ manquent (Django 5.2 accepte PostgreSQL 14 et plus : la version 15 de Debian 12 
    ```
    Tant que cette étape n'est pas faite, le site redirige vers une adresse HTTPS qui ne répond pas.
 5. Renseigner l'envoi des e-mails (invitations, mot de passe oublié) dans
-   `/etc/maison/maison.env` (`EMAIL_URL`), puis `sudo systemctl restart maison`.
+   `/etc/maison/maison.env` (`EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`,
+   `EMAIL_USE_TLS`), puis `sudo systemctl restart maison`. Vérifier l'envoi avec
+   `sudo -u maison .venv/bin/python manage.py sendtestemail votre@adresse.fr`.
 6. Créer un compte administrateur (accès à `/admin/`) :
    ```sh
    cd /opt/maison && sudo -u maison .venv/bin/python manage.py createsuperuser
