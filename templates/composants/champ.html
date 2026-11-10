@@ -1,6 +1,10 @@
 <div>
-  <label class="etiquette" for="{{ champ.id_for_label }}">{{ champ.label }}</label>
-  {{ champ }}
+  {% if champ.widget_type == "checkbox" %}
+    <label class="flex items-center gap-2 text-sm font-medium">{{ champ }} {{ champ.label }}</label>
+  {% else %}
+    <label class="etiquette" for="{{ champ.id_for_label }}">{{ champ.label }}</label>
+    {{ champ }}
+  {% endif %}
   {% if champ.help_text %}<div class="aide">{{ champ.help_text|safe }}</div>{% endif %}
   {% for erreur in champ.errors %}<p class="erreur" role="alert">{{ erreur }}</p>{% endfor %}
 </div>

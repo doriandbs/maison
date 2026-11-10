@@ -1,0 +1,13 @@
+{% extends "composants/page_etroite.html" %}
+{% load i18n %}
+{% block titre %}{{ titre }}{% endblock %}
+{% block carte %}
+<h1>{{ titre }}</h1>
+<form method="post" class="space-y-4">
+  {% include "composants/formulaire.html" with formulaire=form %}
+  <div class="flex gap-3">
+    <button class="bouton-primaire">{% translate "Enregistrer" %}</button>
+    <a class="bouton-secondaire" href="{{ url_retour }}">{% translate "Annuler" %}</a>
+  </div>
+</form>
+{% endblock %}

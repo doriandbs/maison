@@ -52,3 +52,12 @@ class VueDeFoyerMixin(AccesFoyerMixin):
                 f"{type(self).__name__} : le modèle doit hériter de ModeleDeFoyer."
             )
         return requete.du_foyer(self.foyer)
+
+
+class VueFormulaireDeFoyerMixin(AccesFoyerMixin):
+    """Transmet le foyer courant au formulaire (voir `socle.forms.FormulaireDeFoyer`)."""
+
+    def get_form_kwargs(self) -> dict[str, Any]:
+        arguments = super().get_form_kwargs()  # type: ignore[misc]
+        arguments["foyer"] = self.foyer
+        return arguments

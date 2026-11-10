@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% load i18n formats %}
+{% block titre %}{% translate "Opérations" %}{% endblock %}
+{% block contenu %}
+<div class="flex flex-wrap items-center justify-between gap-3">
+  <h1>{% translate "Opérations" %}</h1>
+  {% if peut_modifier %}
+  <span class="flex flex-wrap gap-2">
+    <a class="bouton-secondaire" href="{% url 'banque:ajouter_virement' %}">{% translate "Virement interne" %}</a>
+    <a class="bouton-primaire" href="{% url 'banque:ajouter_operation' %}">{% translate "Ajouter une opération" %}</a>
+  </span>
+  {% endif %}
+</div>
+
+<form method="get" class="carte grid gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+  {% for champ in filtre %}{% include "composants/champ.html" %}{% endfor %}
+  <button class="bouton-secondaire">{% translate "Filtrer" %}</button>
+</form>
+
+{% if operations %}
+<div class="carte overflow-x-auto p-0">
+  <table class="tableau">
+    <thead>
+      <tr>
+        <th>{% translate "Date" %}</th><th>{% translate "Libellé" %}</th><th>{% translate "Compte" %}</th>
+        <th>{% translate "Catégorie" %}</th><th class="text-right">{% translate "Montant" %}</th><th><span class="sr-only">{% translate "Actions" %}</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for operation in operations %}
+      <tr>
+        <td class="whitespace-nowrap">{{ operation.date|date:"j M Y" }}</td>
+        <td>{{ operation.libelle }}{% if operation.note %}<div class="text-sm text-texte-discret">{{ operation.note }}</div>{% endif %}</td>
+        <td>{{ operation.compte.nom }}</td>
+        <td>
+          {% if operation.est_virement %}<span class="pastille">{% translate "virement" %}</span>
+          {% elif operation.categorie %}{{ operation.categorie }}
+          {% else %}<span class="text-texte-discret">{% translate "à classer" %}</span>{% endif %}
+        </td>
+        <td class="montant {% if operation.montant < 0 %}text-danger{% else %}text-succes{% endif %}">{{ operation.montant|euros }}</td>
+        <td class="whitespace-nowrap text-right text-sm">
+          {% if peut_modifier %}
+            {% if not operation.est_virement %}<a href="{% url 'banque:modifier_operation' operation.pk %}">{% translate "Modifier" %}</a> ·{% endif %}
+            <a href="{% url 'banque:supprimer_operation' operation.pk %}">{% translate "Supprimer" %}</a>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% if is_paginated %}
+<nav class="flex items-center justify-between text-sm" aria-label="{% translate 'Pagination' %}">
+  {% if page_obj.has_previous %}<a href="?{{ parametres }}&page={{ page_obj.previous_page_number }}">← {% translate "Plus récentes" %}</a>{% else %}<span></span>{% endif %}
+  <span>{% blocktranslate with page=page_obj.number total=page_obj.paginator.num_pages %}Page {{ page }} sur {{ total }}{% endblocktranslate %}</span>
+  {% if page_obj.has_next %}<a href="?{{ parametres }}&page={{ page_obj.next_page_number }}">{% translate "Plus anciennes" %} →</a>{% else %}<span></span>{% endif %}
+</nav>
+{% endif %}
+{% else %}
+<div class="carte"><p>{% translate "Aucune opération ne correspond." %}</p></div>
+{% endif %}
+{% endblock %}

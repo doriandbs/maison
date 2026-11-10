@@ -1,0 +1,8 @@
+{% load i18n %}
+<span class="flex items-center gap-3 text-sm">
+  <a href="{% url 'banque:modifier_categorie' categorie.pk %}">{% translate "Modifier" %}</a>
+  <form method="post" action="{% url 'banque:archiver_categorie' categorie.pk %}">
+    {% csrf_token %}
+    <button class="cursor-pointer text-primaire-600 underline-offset-2 hover:underline">{% if categorie.est_archivee %}{% translate "Désarchiver" %}{% else %}{% translate "Archiver" %}{% endif %}</button>
+  </form>
+</span>

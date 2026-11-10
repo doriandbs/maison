@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     "apps.socle",
     "apps.utilisateurs",
     "apps.foyers",
+    "apps.banque",
 ]
 
 MIDDLEWARE = [

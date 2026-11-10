@@ -10,5 +10,6 @@ def foyer_courant(request: HttpRequest) -> dict[str, Any]:
     return {
         "adhesion_courante": adhesion,
         "adhesions": getattr(request, "adhesions", []),
+        "peut_modifier": adhesion is not None and adhesion.a_au_moins(Role.MEMBRE),
         "peut_administrer": adhesion is not None and adhesion.a_au_moins(Role.ADMINISTRATEUR),
     }

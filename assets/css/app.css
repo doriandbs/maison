@@ -67,6 +67,22 @@
   .carte {
     @apply rounded-lg border border-bordure bg-surface p-5;
   }
+  .tableau {
+    @apply w-full text-left text-sm;
+  }
+  .tableau th {
+    @apply border-b border-bordure px-4 py-2.5 font-medium text-texte-discret;
+  }
+  .tableau td {
+    @apply border-b border-bordure px-4 py-2.5 align-top;
+  }
+  .tableau tfoot th,
+  .tableau tfoot td {
+    @apply border-b-0 text-texte;
+  }
+  .montant {
+    @apply text-right whitespace-nowrap tabular-nums;
+  }
   .etiquette {
     @apply mb-1 block text-sm font-medium;
   }

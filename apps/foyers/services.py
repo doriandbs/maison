@@ -13,6 +13,7 @@ from django.utils.translation import gettext as _
 from apps.utilisateurs.models import Utilisateur
 
 from .models import Adhesion, Foyer, Invitation, Role
+from .signaux import foyer_cree
 
 DUREE_INVITATION = timedelta(days=7)
 
@@ -38,6 +39,7 @@ def creer_foyer(*, utilisateur: Utilisateur, nom: str) -> Foyer:
         role=Role.PROPRIETAIRE,
         est_principal=not _a_un_foyer_principal(utilisateur),
     )
+    foyer_cree.send(sender=Foyer, foyer=foyer)
     return foyer
 
 

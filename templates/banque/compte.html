@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% load i18n formats %}
+{% block titre %}{{ compte.nom }}{% endblock %}
+{% block contenu %}
+<div class="flex flex-wrap items-center justify-between gap-3">
+  <div>
+    <h1>{{ compte.nom }} {% if compte.est_archive %}<span class="pastille">{% translate "archivé" %}</span>{% endif %}</h1>
+    <p class="text-sm text-texte-discret">{{ compte.get_type_display }}{% if compte.etablissement %} · {{ compte.etablissement }}{% endif %}</p>
+  </div>
+  {% if peut_modifier %}
+  <div class="flex flex-wrap gap-2">
+    <a class="bouton-secondaire" href="{% url 'banque:modifier_compte' compte.pk %}">{% translate "Modifier" %}</a>
+    <form method="post" action="{% url 'banque:archiver_compte' compte.pk %}">
+      {% csrf_token %}
+      <button class="bouton-secondaire">{% if compte.est_archive %}{% translate "Désarchiver" %}{% else %}{% translate "Archiver" %}{% endif %}</button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+
+<div class="carte">
+  <p class="text-sm text-texte-discret">{% translate "Solde actuel" %}</p>
+  <p class="text-3xl font-semibold {% if solde < 0 %}text-danger{% endif %}">{{ solde|euros }}</p>
+  <p class="aide">{% blocktranslate with montant=compte.solde_initial|euros date=compte.ouvert_le|date:"j F Y" %}Solde initial de {{ montant }} au {{ date }}.{% endblocktranslate %}</p>
+</div>
+
+{% if compte.est_valorise %}
+<section class="carte space-y-4" aria-labelledby="titre-releves">
+  <h2 id="titre-releves">{% translate "Relevés de valeur" %}</h2>
+  <p class="aide">{% translate "La valeur de ce compte fluctue : saisissez-la en fin de mois. Le solde affiché est le dernier relevé, plus les opérations saisies depuis." %}</p>
+  {% if peut_modifier %}
+  <form method="post" action="{% url 'banque:ajouter_releve' compte.pk %}" class="grid gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+    {% include "composants/formulaire.html" with formulaire=formulaire_releve %}
+    <button class="bouton-primaire">{% translate "Enregistrer le relevé" %}</button>
+  </form>
+  {% endif %}
+  {% if releves %}
+  <ul class="divide-y divide-bordure">
+    {% for releve in releves %}
+    <li class="flex items-center justify-between gap-3 py-2">
+      <span>{{ releve.date|date:"j F Y" }}</span>
+      <span class="flex items-center gap-3">
+        <span class="montant">{{ releve.montant|euros }}</span>
+        {% if peut_modifier %}
+        <form method="post" action="{% url 'banque:supprimer_releve' releve.pk %}">
+          {% csrf_token %}
+          <button class="bouton-danger" aria-label="{% translate 'Supprimer ce relevé' %}">{% translate "Supprimer" %}</button>
+        </form>
+        {% endif %}
+      </span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</section>
+{% endif %}
+
+<section class="carte space-y-3" aria-labelledby="titre-operations">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <h2 id="titre-operations">{% translate "Dernières opérations" %}</h2>
+    <span class="flex gap-2">
+      <a class="bouton-secondaire" href="{% url 'banque:operations' %}?compte={{ compte.pk }}">{% translate "Tout voir" %}</a>
+      {% if peut_modifier and not compte.est_archive %}<a class="bouton-primaire" href="{% url 'banque:ajouter_operation' %}?compte={{ compte.pk }}">{% translate "Ajouter" %}</a>{% endif %}
+    </span>
+  </div>
+  <ul class="divide-y divide-bordure">
+    {% for operation in operations %}
+    <li class="flex items-center justify-between gap-3 py-2">
+      <span>{{ operation.libelle }} <span class="text-sm text-texte-discret">{{ operation.date|date:"j M Y" }}</span></span>
+      <span class="montant {% if operation.montant < 0 %}text-danger{% else %}text-succes{% endif %}">{{ operation.montant|euros }}</span>
+    </li>
+    {% empty %}
+    <li class="py-2 text-texte-discret">{% translate "Aucune opération." %}</li>
+    {% endfor %}
+  </ul>
+</section>
+{% endblock %}

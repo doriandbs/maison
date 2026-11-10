@@ -9,5 +9,6 @@ urlpatterns = [
     path("sante/", sante, name="sante"),
     path("compte/", include("apps.utilisateurs.urls")),
     path("", include("apps.foyers.urls")),
+    path("", include("apps.banque.urls")),
     path("admin/", admin.site.urls),
 ]

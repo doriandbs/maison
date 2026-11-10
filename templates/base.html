@@ -29,8 +29,11 @@
               <a class="block px-2 py-1.5 text-sm" href="{% url 'foyers:liste' %}">{% translate "Gérer mes foyers" %}</a>
             </div>
           </details>
-          <nav class="flex gap-4 text-sm" aria-label="{% translate 'Navigation principale' %}">
+          <nav class="flex flex-wrap gap-x-4 gap-y-1 text-sm" aria-label="{% translate 'Navigation principale' %}">
             <a href="{% url 'accueil' %}">{% translate "Accueil" %}</a>
+            <a href="{% url 'banque:comptes' %}">{% translate "Comptes" %}</a>
+            <a href="{% url 'banque:operations' %}">{% translate "Opérations" %}</a>
+            <a href="{% url 'banque:categories' %}">{% translate "Catégories" %}</a>
             <a href="{% url 'foyers:membres' %}">{% translate "Membres" %}</a>
           </nav>
         {% endif %}

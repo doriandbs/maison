@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block titre %}{% translate "Catégories" %}{% endblock %}
+{% block contenu %}
+<div class="flex flex-wrap items-center justify-between gap-3">
+  <h1>{% translate "Catégories" %}</h1>
+  {% if peut_modifier %}<a class="bouton-primaire" href="{% url 'banque:ajouter_categorie' %}">{% translate "Ajouter une catégorie" %}</a>{% endif %}
+</div>
+<p class="aide">{% translate "Chaque opération se range dans une sous-catégorie. Une catégorie archivée n'est plus proposée à la saisie mais reste dans l'historique." %}</p>
+
+<div class="grid gap-4 md:grid-cols-2">
+  {% for categorie in categories %}
+  <section class="carte space-y-2 {% if categorie.est_archivee %}opacity-60{% endif %}">
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <h2>{{ categorie.nom }} <span class="pastille">{{ categorie.get_nature_display }}</span>{% if categorie.est_archivee %} <span class="pastille">{% translate "archivée" %}</span>{% endif %}</h2>
+      {% if peut_modifier %}{% include "banque/_actions_categorie.html" %}{% endif %}
+    </div>
+    <ul class="divide-y divide-bordure">
+      {% for sous_categorie in categorie.sous_categories.all %}
+      <li class="flex flex-wrap items-center justify-between gap-2 py-1.5 {% if sous_categorie.est_archivee %}opacity-60{% endif %}">
+        <span>{{ sous_categorie.nom }}{% if sous_categorie.est_archivee %} <span class="pastille">{% translate "archivée" %}</span>{% endif %}</span>
+        {% if peut_modifier %}{% include "banque/_actions_categorie.html" with categorie=sous_categorie %}{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% if peut_modifier and not categorie.est_archivee %}
+    <a class="text-sm" href="{% url 'banque:ajouter_categorie' %}?parent={{ categorie.pk }}">+ {% translate "Ajouter une sous-catégorie" %}</a>
+    {% endif %}
+  </section>
+  {% endfor %}
+</div>
+{% endblock %}
