@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from decimal import Decimal
+from typing import Any
 
 from django.db.models import Q, Sum
 
@@ -128,8 +129,8 @@ def lignes_par_categorie(
 def lignes_par_compte(foyer: Foyer, debut: date, fin: date) -> list[LigneCompte]:
     hors_virement = Q(groupe_virement__isnull=True)
     sans_categorie = Q(categorie__isnull=True)
-    totaux = {
-        ligne["compte_id"]: ligne
+    totaux: dict[int, dict[str, Any]] = {
+        ligne["compte_id"]: dict(ligne)
         for ligne in Operation.objects.du_foyer(foyer)
         .filter(date__range=(debut, fin))
         .order_by()
@@ -152,7 +153,7 @@ def lignes_par_compte(foyer: Foyer, debut: date, fin: date) -> list[LigneCompte]
     soldes_fin = soldes_des_comptes(foyer, fin)
     lignes = []
     for compte in Compte.objects.du_foyer(foyer):
-        du_compte: dict[str, Decimal | None] = totaux.get(compte.pk, {})
+        du_compte = totaux.get(compte.pk, {})
         ligne = LigneCompte(
             compte=compte,
             solde_debut=soldes_debut[compte.pk],
