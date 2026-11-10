@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block titre %}{% translate "Accueil" %}{% endblock %}
+{% block contenu %}
+<h1>{{ adhesion_courante.foyer.nom }}</h1>
+<div class="carte">
+  <p class="text-texte-discret">{% translate "Le tableau de bord arrivera avec les comptes et les opérations." %}</p>
+</div>
+{% endblock %}

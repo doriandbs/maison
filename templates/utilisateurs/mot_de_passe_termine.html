@@ -1,0 +1,7 @@
+{% extends "composants/page_etroite.html" %}
+{% load i18n %}
+{% block titre %}{% translate "Mot de passe modifié" %}{% endblock %}
+{% block carte %}
+<h1>{% translate "Mot de passe modifié" %}</h1>
+<p><a href="{% url 'utilisateurs:connexion' %}">{% translate "Se connecter" %}</a></p>
+{% endblock %}

@@ -1,0 +1,10 @@
+{% extends "composants/page_etroite.html" %}
+{% load i18n %}
+{% block titre %}{% translate "Mot de passe oublié" %}{% endblock %}
+{% block carte %}
+<h1>{% translate "Mot de passe oublié" %}</h1>
+<form method="post" class="space-y-4">
+  {% include "composants/formulaire.html" with formulaire=form %}
+  <button class="bouton-primaire w-full">{% translate "Recevoir un lien de réinitialisation" %}</button>
+</form>
+{% endblock %}

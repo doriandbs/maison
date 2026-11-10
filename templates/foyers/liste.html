@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block titre %}{% translate "Mes foyers" %}{% endblock %}
+{% block contenu %}
+<div class="flex flex-wrap items-center justify-between gap-3">
+  <h1>{% translate "Mes foyers" %}</h1>
+  <a class="bouton-primaire" href="{% url 'foyers:creer' %}">{% translate "Créer un foyer" %}</a>
+</div>
+
+{% if invitations_recues %}
+<section class="carte space-y-3" aria-labelledby="titre-invitations">
+  <h2 id="titre-invitations">{% translate "Invitations reçues" %}</h2>
+  <ul class="divide-y divide-bordure">
+    {% for invitation in invitations_recues %}
+    <li class="flex flex-wrap items-center justify-between gap-3 py-3">
+      <span>
+        <strong>{{ invitation.foyer.nom }}</strong>
+        <span class="pastille">{{ invitation.get_role_display }}</span>
+        {% if invitation.invite_par %}<span class="text-sm text-texte-discret">– {% blocktranslate with nom=invitation.invite_par %}invité par {{ nom }}{% endblocktranslate %}</span>{% endif %}
+      </span>
+      <form method="post" action="{% url 'foyers:accepter_invitation' invitation.pk %}">
+        {% csrf_token %}
+        <button class="bouton-primaire">{% translate "Rejoindre" %}</button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+{% if adhesions %}
+<ul class="carte divide-y divide-bordure">
+  {% for adhesion in adhesions %}
+  <li class="flex flex-wrap items-center justify-between gap-3 py-3">
+    <span>
+      <strong>{{ adhesion.foyer.nom }}</strong>
+      <span class="pastille">{{ adhesion.get_role_display }}</span>
+      {% if adhesion.est_principal %}<span class="pastille">{% translate "principal" %}</span>{% endif %}
+    </span>
+    <span class="flex flex-wrap gap-2">
+      {% if not adhesion.est_principal %}
+      <form method="post" action="{% url 'foyers:principal' adhesion.foyer_id %}">
+        {% csrf_token %}
+        <button class="bouton-secondaire">{% translate "Définir comme principal" %}</button>
+      </form>
+      {% endif %}
+      <form method="post" action="{% url 'foyers:activer' adhesion.foyer_id %}">
+        {% csrf_token %}
+        <button class="bouton-secondaire">{% translate "Ouvrir" %}</button>
+      </form>
+    </span>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<div class="carte">
+  <p>{% translate "Vous n'appartenez encore à aucun foyer. Créez le vôtre, ou demandez à un proche de vous inviter avec l'adresse e-mail de votre compte." %}</p>
+</div>
+{% endif %}
+{% endblock %}

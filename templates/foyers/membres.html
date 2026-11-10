@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block titre %}{% translate "Membres" %}{% endblock %}
+{% block contenu %}
+<h1>{% blocktranslate with nom=adhesion_courante.foyer.nom %}Membres de « {{ nom }} »{% endblocktranslate %}</h1>
+
+<ul class="carte divide-y divide-bordure">
+  {% for membre in membres %}
+  <li class="flex flex-wrap items-center justify-between gap-3 py-3">
+    <span>
+      <strong>{{ membre.utilisateur }}</strong>
+      <span class="text-sm text-texte-discret">{{ membre.utilisateur.email }}</span>
+      {% if not peut_administrer %}<span class="pastille">{{ membre.get_role_display }}</span>{% endif %}
+    </span>
+    <span class="flex flex-wrap items-center gap-2">
+      {% if peut_administrer %}
+      <form method="post" action="{% url 'foyers:changer_role' membre.pk %}" class="flex items-center gap-2">
+        {% csrf_token %}
+        <label class="sr-only" for="role-{{ membre.pk }}">{% translate "Rôle" %}</label>
+        <select name="role" id="role-{{ membre.pk }}" class="w-auto">
+          {% for valeur, libelle in roles %}
+          <option value="{{ valeur }}" {% if valeur == membre.role %}selected{% endif %}>{{ libelle }}</option>
+          {% endfor %}
+        </select>
+        <button class="bouton-secondaire">{% translate "Modifier" %}</button>
+      </form>
+      {% endif %}
+      {% if peut_administrer or membre == adhesion_courante %}
+      <form method="post" action="{% url 'foyers:retirer_membre' membre.pk %}">
+        {% csrf_token %}
+        <button class="bouton-danger">
+          {% if membre == adhesion_courante %}{% translate "Quitter le foyer" %}{% else %}{% translate "Retirer" %}{% endif %}
+        </button>
+      </form>
+      {% endif %}
+    </span>
+  </li>
+  {% endfor %}
+</ul>
+
+{% if peut_administrer %}
+<section class="carte space-y-4" aria-labelledby="titre-inviter">
+  <h2 id="titre-inviter">{% translate "Inviter quelqu'un" %}</h2>
+  <form method="post" action="{% url 'foyers:inviter' %}" class="grid gap-4 sm:grid-cols-[1fr_auto_auto] sm:items-end">
+    {% include "composants/formulaire.html" with formulaire=formulaire_invitation %}
+    <button class="bouton-primaire">{% translate "Envoyer l'invitation" %}</button>
+  </form>
+
+  {% if invitations %}
+  <h3 class="text-sm font-semibold">{% translate "Invitations en attente" %}</h3>
+  <ul class="divide-y divide-bordure">
+    {% for invitation in invitations %}
+    <li class="flex flex-wrap items-center justify-between gap-3 py-2">
+      <span>
+        {{ invitation.email }} <span class="pastille">{{ invitation.get_role_display }}</span>
+        <span class="text-sm text-texte-discret">{% blocktranslate with date=invitation.expire_le|date:"j F" %}expire le {{ date }}{% endblocktranslate %}</span>
+      </span>
+      <form method="post" action="{% url 'foyers:revoquer_invitation' invitation.pk %}">
+        {% csrf_token %}
+        <button class="bouton-danger">{% translate "Révoquer" %}</button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</section>
+{% endif %}
+{% endblock %}

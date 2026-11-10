@@ -1,0 +1,8 @@
+{% autoescape off %}Bonjour {{ utilisateur.first_name }},
+
+Pour activer votre compte Maison, ouvrez ce lien :
+
+{{ url_activation }}
+
+Si vous n'êtes pas à l'origine de cette inscription, ignorez ce message.
+{% endautoescape %}

@@ -1,0 +1,5 @@
+{% comment %}Rendu unique de tous les formulaires : {% include "composants/formulaire.html" with formulaire=form %}{% endcomment %}
+{% csrf_token %}
+{% for erreur in formulaire.non_field_errors %}<p class="message-error" role="alert">{{ erreur }}</p>{% endfor %}
+{% for champ in formulaire.hidden_fields %}{{ champ }}{% endfor %}
+{% for champ in formulaire.visible_fields %}{% include "composants/champ.html" %}{% endfor %}

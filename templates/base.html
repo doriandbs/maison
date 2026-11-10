@@ -1,0 +1,52 @@
+{% load static i18n %}<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titre %}{% endblock %} – Maison</title>
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body class="min-h-screen">
+  <a href="#contenu" class="sr-only focus:not-sr-only">{% translate "Aller au contenu" %}</a>
+  <header class="border-b border-bordure bg-surface">
+    <div class="mx-auto flex max-w-5xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
+      <a href="{% url 'accueil' %}" class="text-lg font-semibold text-texte">Maison</a>
+      {% if user.is_authenticated %}
+        {% if adhesion_courante %}
+          <details class="relative">
+            <summary class="bouton-secondaire">{{ adhesion_courante.foyer.nom }}</summary>
+            <div class="carte absolute z-10 mt-1 w-64 space-y-1 p-2">
+              {% for adhesion in adhesions %}
+                <form method="post" action="{% url 'foyers:activer' adhesion.foyer_id %}">
+                  {% csrf_token %}
+                  <button class="w-full cursor-pointer rounded px-2 py-1.5 text-left text-sm hover:bg-primaire-50"
+                          {% if adhesion == adhesion_courante %}aria-current="true"{% endif %}>
+                    {{ adhesion.foyer.nom }}
+                    {% if adhesion.est_principal %}<span class="pastille">{% translate "principal" %}</span>{% endif %}
+                  </button>
+                </form>
+              {% endfor %}
+              <a class="block px-2 py-1.5 text-sm" href="{% url 'foyers:liste' %}">{% translate "Gérer mes foyers" %}</a>
+            </div>
+          </details>
+          <nav class="flex gap-4 text-sm" aria-label="{% translate 'Navigation principale' %}">
+            <a href="{% url 'accueil' %}">{% translate "Accueil" %}</a>
+            <a href="{% url 'foyers:membres' %}">{% translate "Membres" %}</a>
+          </nav>
+        {% endif %}
+        <form method="post" action="{% url 'utilisateurs:deconnexion' %}" class="ml-auto flex items-center gap-3">
+          {% csrf_token %}
+          <span class="hidden text-sm text-texte-discret sm:inline">{{ user.email }}</span>
+          <button class="bouton-secondaire">{% translate "Déconnexion" %}</button>
+        </form>
+      {% endif %}
+    </div>
+  </header>
+  <main id="contenu" class="mx-auto max-w-5xl space-y-6 px-4 py-8">
+    {% for message in messages %}
+      <p class="message-{{ message.level_tag }}" role="status">{{ message }}</p>
+    {% endfor %}
+    {% block contenu %}{% endblock %}
+  </main>
+</body>
+</html>

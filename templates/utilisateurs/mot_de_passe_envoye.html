@@ -1,0 +1,7 @@
+{% extends "composants/page_etroite.html" %}
+{% load i18n %}
+{% block titre %}{% translate "E-mail envoyé" %}{% endblock %}
+{% block carte %}
+<h1>{% translate "Vérifiez votre boîte mail" %}</h1>
+<p>{% translate "Si un compte existe pour cette adresse, un lien de réinitialisation vient d'être envoyé." %}</p>
+{% endblock %}

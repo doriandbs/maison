@@ -1,0 +1,6 @@
+<div>
+  <label class="etiquette" for="{{ champ.id_for_label }}">{{ champ.label }}</label>
+  {{ champ }}
+  {% if champ.help_text %}<div class="aide">{{ champ.help_text|safe }}</div>{% endif %}
+  {% for erreur in champ.errors %}<p class="erreur" role="alert">{{ erreur }}</p>{% endfor %}
+</div>

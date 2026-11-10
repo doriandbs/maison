@@ -1,0 +1,92 @@
+@import "tailwindcss";
+@source "../../templates";
+@source "../../apps";
+
+/* Charte : toute couleur ou composant réutilisé est défini ici, une seule fois. */
+@theme {
+  --color-primaire-50: var(--color-teal-50);
+  --color-primaire-100: var(--color-teal-100);
+  --color-primaire-600: var(--color-teal-700);
+  --color-primaire-700: var(--color-teal-800);
+  --color-fond: var(--color-stone-50);
+  --color-surface: #ffffff;
+  --color-bordure: var(--color-stone-200);
+  --color-texte: var(--color-stone-900);
+  --color-texte-discret: var(--color-stone-600);
+  --color-danger: var(--color-red-700);
+  --color-succes: var(--color-green-700);
+}
+
+@layer base {
+  body {
+    @apply bg-fond text-texte antialiased;
+  }
+  h1 {
+    @apply text-2xl font-semibold tracking-tight;
+  }
+  h2 {
+    @apply text-lg font-semibold;
+  }
+  a {
+    @apply text-primaire-600 underline-offset-2 hover:underline;
+  }
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="date"],
+  select,
+  textarea {
+    @apply block w-full rounded-md border border-bordure bg-surface px-3 py-2 text-base
+      focus:border-primaire-600 focus:outline-2 focus:outline-primaire-600;
+  }
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-primaire-600;
+  }
+}
+
+/* Briques de base : déclarées en @utility pour pouvoir être reprises par @apply. */
+@utility bouton {
+  @apply inline-flex cursor-pointer items-center justify-center rounded-md border border-transparent
+    px-4 py-2 text-sm font-medium no-underline hover:no-underline;
+}
+@utility message {
+  @apply rounded-md border px-4 py-3 text-sm;
+}
+
+@layer components {
+  .bouton-primaire {
+    @apply bouton bg-primaire-600 text-white hover:bg-primaire-700;
+  }
+  .bouton-secondaire {
+    @apply bouton border-bordure bg-surface text-texte hover:bg-primaire-50;
+  }
+  .bouton-danger {
+    @apply bouton border-bordure bg-surface text-danger hover:bg-red-50;
+  }
+  .carte {
+    @apply rounded-lg border border-bordure bg-surface p-5;
+  }
+  .etiquette {
+    @apply mb-1 block text-sm font-medium;
+  }
+  .aide {
+    @apply mt-1 text-sm text-texte-discret;
+  }
+  .erreur {
+    @apply mt-1 text-sm text-danger;
+  }
+  .pastille {
+    @apply inline-block rounded-full bg-primaire-100 px-2 py-0.5 text-xs font-medium text-primaire-700;
+  }
+  .message-success {
+    @apply message border-green-200 bg-green-50 text-succes;
+  }
+  .message-error {
+    @apply message border-red-200 bg-red-50 text-danger;
+  }
+  .message-info,
+  .message-warning {
+    @apply message border-bordure bg-surface;
+  }
+}

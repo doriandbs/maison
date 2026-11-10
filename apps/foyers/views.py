@@ -1,0 +1,206 @@
+from typing import Any
+
+from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.http import HttpRequest, HttpResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.utils.translation import gettext as _
+from django.views import View
+from django.views.generic import FormView, TemplateView
+
+from apps.socle.limites import limiter_par_utilisateur
+
+from . import services
+from .acces import AccesFoyerMixin
+from .forms import FormulaireFoyer, FormulaireInvitation, FormulaireRole
+from .middleware import CLE_SESSION_FOYER
+from .models import Adhesion, Invitation, Role
+
+
+class VueAccueil(AccesFoyerMixin, TemplateView):
+    template_name = "foyers/accueil.html"
+
+
+class VueMesFoyers(LoginRequiredMixin, TemplateView):
+    template_name = "foyers/liste.html"
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        contexte = super().get_context_data(**kwargs)
+        contexte["invitations_recues"] = (
+            Invitation.objects.en_attente()
+            .filter(email=self.request.user.email)  # type: ignore[union-attr]
+            .select_related("foyer", "invite_par")
+        )
+        return contexte
+
+
+class VueCreerFoyer(LoginRequiredMixin, FormView):
+    template_name = "foyers/creer.html"
+    form_class = FormulaireFoyer
+
+    def form_valid(self, form: FormulaireFoyer) -> HttpResponse:
+        foyer = services.creer_foyer(
+            utilisateur=self.request.user,  # type: ignore[arg-type]
+            nom=form.cleaned_data["nom"],
+        )
+        self.request.session[CLE_SESSION_FOYER] = foyer.pk
+        messages.success(self.request, _("Le foyer « %(nom)s » est créé.") % {"nom": foyer.nom})
+        return redirect("accueil")
+
+
+class VueActiverFoyer(LoginRequiredMixin, View):
+    """Change le foyer courant de la session."""
+
+    def post(self, request: HttpRequest, pk: int) -> HttpResponse:
+        adhesion = get_object_or_404(Adhesion, utilisateur=request.user, foyer_id=pk)
+        request.session[CLE_SESSION_FOYER] = adhesion.foyer_id
+        return redirect("accueil")
+
+
+class VueFoyerPrincipal(LoginRequiredMixin, View):
+    def post(self, request: HttpRequest, pk: int) -> HttpResponse:
+        adhesion = get_object_or_404(Adhesion, utilisateur=request.user, foyer_id=pk)
+        services.definir_foyer_principal(adhesion)
+        return redirect("foyers:liste")
+
+
+class VueMembres(AccesFoyerMixin, TemplateView):
+    template_name = "foyers/membres.html"
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        contexte = super().get_context_data(**kwargs)
+        contexte["membres"] = (
+            Adhesion.objects.du_foyer(self.foyer)
+            .select_related("utilisateur")
+            .order_by("utilisateur__email")
+        )
+        contexte["roles"] = Role.choices
+        if self.adhesion.a_au_moins(Role.ADMINISTRATEUR):
+            contexte["invitations"] = Invitation.objects.du_foyer(self.foyer).en_attente()
+            contexte["formulaire_invitation"] = FormulaireInvitation()
+        return contexte
+
+
+@limiter_par_utilisateur("20/h")
+class VueInviter(AccesFoyerMixin, View):
+    role_ecriture = Role.ADMINISTRATEUR
+
+    def post(self, request: HttpRequest) -> HttpResponse:
+        formulaire = FormulaireInvitation(request.POST)
+        if not formulaire.is_valid():
+            messages.error(request, _("Adresse e-mail ou rôle invalide."))
+            return redirect("foyers:membres")
+        try:
+            invitation, jeton = services.inviter(
+                foyer=self.foyer,
+                invite_par=request.user,  # type: ignore[arg-type]
+                **formulaire.cleaned_data,
+            )
+        except services.ErreurFoyer as erreur:
+            messages.error(request, str(erreur))
+            return redirect("foyers:membres")
+        url = request.build_absolute_uri(reverse("foyers:invitation", kwargs={"jeton": jeton}))
+        services.envoyer_email_invitation(invitation, url)
+        messages.success(
+            request, _("Invitation envoyée à %(email)s.") % {"email": invitation.email}
+        )
+        return redirect("foyers:membres")
+
+
+class VueRevoquerInvitation(AccesFoyerMixin, View):
+    role_ecriture = Role.ADMINISTRATEUR
+
+    def post(self, request: HttpRequest, pk: int) -> HttpResponse:
+        invitation = get_object_or_404(Invitation.objects.du_foyer(self.foyer).en_attente(), pk=pk)
+        services.revoquer_invitation(invitation)
+        messages.success(request, _("Invitation révoquée."))
+        return redirect("foyers:membres")
+
+
+class VueChangerRole(AccesFoyerMixin, View):
+    role_ecriture = Role.ADMINISTRATEUR
+
+    def post(self, request: HttpRequest, pk: int) -> HttpResponse:
+        cible = get_object_or_404(Adhesion.objects.du_foyer(self.foyer), pk=pk)
+        formulaire = FormulaireRole(request.POST)
+        if not formulaire.is_valid():
+            messages.error(request, _("Rôle inconnu."))
+            return redirect("foyers:membres")
+        try:
+            services.changer_role(
+                adhesion=cible, role=formulaire.cleaned_data["role"], par=self.adhesion
+            )
+        except services.ErreurFoyer as erreur:
+            messages.error(request, str(erreur))
+        else:
+            messages.success(request, _("Rôle mis à jour."))
+        return redirect("foyers:membres")
+
+
+class VueRetirerMembre(AccesFoyerMixin, View):
+    # Tout membre peut se retirer lui-même ; le service vérifie les autres cas.
+    role_ecriture = Role.LECTEUR
+
+    def post(self, request: HttpRequest, pk: int) -> HttpResponse:
+        cible = get_object_or_404(Adhesion.objects.du_foyer(self.foyer), pk=pk)
+        se_retire = cible.pk == self.adhesion.pk
+        try:
+            services.retirer_membre(adhesion=cible, par=self.adhesion)
+        except services.ErreurFoyer as erreur:
+            messages.error(request, str(erreur))
+            return redirect("foyers:membres")
+        if se_retire:
+            messages.success(request, _("Vous avez quitté le foyer."))
+            return redirect("foyers:liste")
+        messages.success(request, _("Membre retiré du foyer."))
+        return redirect("foyers:membres")
+
+
+class VueInvitation(LoginRequiredMixin, View):
+    """Lien reçu par e-mail : affiche l'invitation puis l'accepte sur confirmation."""
+
+    def _invitation(self, jeton: str) -> Invitation:
+        return get_object_or_404(
+            Invitation.objects.select_related("foyer"),
+            empreinte_jeton=services.empreinte(jeton),
+        )
+
+    def get(self, request: HttpRequest, jeton: str) -> HttpResponse:
+        invitation = self._invitation(jeton)
+        contexte = {
+            "invitation": invitation,
+            "bonne_adresse": invitation.email == request.user.email,  # type: ignore[union-attr]
+        }
+        return render(request, "foyers/invitation.html", contexte)
+
+    def post(self, request: HttpRequest, jeton: str) -> HttpResponse:
+        return _accepter(request, self._invitation(jeton))
+
+
+class VueAccepterInvitationRecue(LoginRequiredMixin, View):
+    """Acceptation depuis « Mes foyers » : l'adresse e-mail vérifiée du compte fait foi."""
+
+    def post(self, request: HttpRequest, pk: int) -> HttpResponse:
+        invitation = get_object_or_404(
+            Invitation.objects.en_attente(),
+            pk=pk,
+            email=request.user.email,  # type: ignore[union-attr]
+        )
+        return _accepter(request, invitation)
+
+
+def _accepter(request: HttpRequest, invitation: Invitation) -> HttpResponse:
+    try:
+        adhesion = services.accepter_invitation(
+            invitation=invitation,
+            utilisateur=request.user,  # type: ignore[arg-type]
+        )
+    except services.ErreurFoyer as erreur:
+        messages.error(request, str(erreur))
+        return redirect("foyers:liste")
+    request.session[CLE_SESSION_FOYER] = adhesion.foyer_id
+    messages.success(
+        request, _("Vous avez rejoint le foyer « %(nom)s ».") % {"nom": adhesion.foyer.nom}
+    )
+    return redirect("accueil")

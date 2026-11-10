@@ -1,0 +1,11 @@
+{% extends "composants/page_etroite.html" %}
+{% load i18n %}
+{% block titre %}{% translate "Créer un compte" %}{% endblock %}
+{% block carte %}
+<h1>{% translate "Créer un compte" %}</h1>
+<form method="post" class="space-y-4">
+  {% include "composants/formulaire.html" with formulaire=form %}
+  <button class="bouton-primaire w-full">{% translate "Créer mon compte" %}</button>
+</form>
+<p class="text-sm"><a href="{% url 'utilisateurs:connexion' %}">{% translate "J'ai déjà un compte" %}</a></p>
+{% endblock %}

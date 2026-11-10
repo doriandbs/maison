@@ -1,0 +1,17 @@
+{% extends "composants/page_etroite.html" %}
+{% load i18n %}
+{% block titre %}{% translate "Invitation" %}{% endblock %}
+{% block carte %}
+<h1>{% blocktranslate with nom=invitation.foyer.nom %}Rejoindre « {{ nom }} »{% endblocktranslate %}</h1>
+{% if not invitation.est_en_attente %}
+  <p>{% translate "Cette invitation a expiré, a été révoquée ou a déjà été utilisée." %}</p>
+{% elif not bonne_adresse %}
+  <p>{% blocktranslate with email=invitation.email %}Cette invitation est destinée à {{ email }}. Connectez-vous avec le compte correspondant pour l'accepter.{% endblocktranslate %}</p>
+{% else %}
+  <p>{% blocktranslate with role=invitation.get_role_display %}Vous êtes invité avec le rôle « {{ role }} ».{% endblocktranslate %}</p>
+  <form method="post">
+    {% csrf_token %}
+    <button class="bouton-primaire w-full">{% translate "Rejoindre le foyer" %}</button>
+  </form>
+{% endif %}
+{% endblock %}

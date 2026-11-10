@@ -1,0 +1,8 @@
+{% extends "composants/page_etroite.html" %}
+{% load i18n %}
+{% block titre %}{% translate "Lien invalide" %}{% endblock %}
+{% block carte %}
+<h1>{% translate "Lien d'activation invalide" %}</h1>
+<p>{% translate "Ce lien a expiré ou a déjà été utilisé." %}</p>
+<p><a href="{% url 'utilisateurs:connexion' %}">{% translate "Aller à la connexion" %}</a></p>
+{% endblock %}

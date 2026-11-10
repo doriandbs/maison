@@ -1,0 +1,8 @@
+{% autoescape off %}Bonjour,
+
+Pour choisir un nouveau mot de passe, ouvrez ce lien :
+
+{{ protocol }}://{{ domain }}{% url 'utilisateurs:mot_de_passe_nouveau' uidb64=uid token=token %}
+
+Si vous n'avez rien demandé, ignorez ce message : votre mot de passe reste inchangé.
+{% endautoescape %}

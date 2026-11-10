@@ -1,0 +1,15 @@
+{% extends "composants/page_etroite.html" %}
+{% load i18n %}
+{% block titre %}{% translate "Nouveau mot de passe" %}{% endblock %}
+{% block carte %}
+<h1>{% translate "Nouveau mot de passe" %}</h1>
+{% if validlink %}
+  <form method="post" class="space-y-4">
+    {% include "composants/formulaire.html" with formulaire=form %}
+    <button class="bouton-primaire w-full">{% translate "Enregistrer" %}</button>
+  </form>
+{% else %}
+  <p>{% translate "Ce lien a expiré ou a déjà été utilisé." %}</p>
+  <p><a href="{% url 'utilisateurs:mot_de_passe_oublie' %}">{% translate "Demander un nouveau lien" %}</a></p>
+{% endif %}
+{% endblock %}
