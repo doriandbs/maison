@@ -1,12 +1,13 @@
 from typing import Any
 
 from django import forms
+from django.utils.functional import Promise
 from django.utils.translation import gettext_lazy as _
 
 from .models import Adhesion, Foyer, Role
 
 
-def roles_attribuables(par: Adhesion) -> list[tuple[str, str]]:
+def roles_attribuables(par: Adhesion) -> list[tuple[str, str | Promise]]:
     """Rôles qu'un membre peut donner : seul un propriétaire peut faire d'autres propriétaires."""
     if par.role == Role.PROPRIETAIRE:
         return list(Role.choices)
