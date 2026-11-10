@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block titre %}{% translate "Prévisionnel" %} – {{ mois|date:"F Y" }}{% endblock %}
+{% block contenu %}
+<h1>{% blocktranslate with mois=mois|date:"F Y" %}Prévisionnel de {{ mois }}{% endblocktranslate %}</h1>
+<p class="aide">{% translate "Saisissez un budget sur une sous-catégorie quand il est précis, ou directement sur la catégorie parente pour une enveloppe globale. Un budget laissé vide sur une parente est la somme de ses sous-catégories. Videz un champ pour retirer le budget." %}</p>
+
+<form method="post" class="space-y-6">
+  {% csrf_token %}
+  {% for erreur in form.non_field_errors %}<p class="message-error" role="alert">{{ erreur }}</p>{% endfor %}
+
+  <div class="grid gap-4 md:grid-cols-2">
+    {% for champ_parent, champs_enfants in form.groupes %}
+    <fieldset class="carte space-y-2">
+      <legend class="sr-only">{{ champ_parent.label }}</legend>
+      {% include "budget/_champ_budget.html" with champ=champ_parent parente=True %}
+      {% for champ in champs_enfants %}{% include "budget/_champ_budget.html" with parente=False %}{% endfor %}
+    </fieldset>
+    {% endfor %}
+  </div>
+
+  <div class="carte space-y-4">
+    {% include "composants/champ.html" with champ=form.portee %}
+    <div class="flex gap-3">
+      <button class="bouton-primaire">{% translate "Enregistrer" %}</button>
+      <a class="bouton-secondaire" href="{% url 'budget:mois' mois.year mois.month %}">{% translate "Annuler" %}</a>
+    </div>
+  </div>
+</form>
+{% endblock %}

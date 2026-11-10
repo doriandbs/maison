@@ -83,6 +83,12 @@
   .montant {
     @apply text-right whitespace-nowrap tabular-nums;
   }
+  .jauge {
+    @apply ml-auto mt-1 block h-1.5 w-24 accent-primaire-600;
+  }
+  .jauge-depassee {
+    @apply accent-danger;
+  }
   .etiquette {
     @apply mb-1 block text-sm font-medium;
   }

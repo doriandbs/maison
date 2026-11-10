@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     "apps.utilisateurs",
     "apps.foyers",
     "apps.banque",
+    "apps.budget",
 ]
 
 MIDDLEWARE = [

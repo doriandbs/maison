@@ -15,3 +15,23 @@ def euros(valeur: Decimal | int | None) -> str:
         return ""
     texte = f"{valeur:,.2f}".replace(",", ESPACE_FINE_INSECABLE).replace(".", ",")
     return f"{texte}{ESPACE_INSECABLE}€"
+
+
+@register.filter
+def euros_ou_vide(valeur: Decimal | int | None) -> str:
+    """Comme `euros`, mais laisse la cellule vide pour un montant nul (tableaux denses)."""
+    return euros(valeur) if valeur else ""
+
+
+@register.filter
+def pourcent(valeur: Decimal | None) -> str:
+    """12.5 → « 12,5 % » ; « – » quand le taux est indéfini."""
+    if valeur is None:
+        return "–"
+    return f"{valeur:.1f}".replace(".", ",") + f"{ESPACE_INSECABLE}%"
+
+
+@register.filter
+def nombre_brut(valeur: Decimal | int) -> str:
+    """Nombre au format informatique (point décimal) pour un attribut HTML."""
+    return f"{max(valeur, 0):.2f}"

@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% load i18n formats %}
+{% block titre %}{% translate "Budget" %} – {{ tableau.mois|date:"F Y" }}{% endblock %}
+{% block contenu %}
+<div class="flex flex-wrap items-center justify-between gap-3">
+  <h1>{{ tableau.mois|date:"F Y"|capfirst }}</h1>
+  <nav class="flex flex-wrap gap-2" aria-label="{% translate 'Navigation entre les mois' %}">
+    <a class="bouton-secondaire" href="{% url 'budget:mois' mois_precedent.year mois_precedent.month %}">← {{ mois_precedent|date:"F"|capfirst }}</a>
+    <a class="bouton-secondaire" href="{% url 'budget:mois' mois_suivant.year mois_suivant.month %}">{{ mois_suivant|date:"F"|capfirst }} →</a>
+    <a class="bouton-secondaire" href="{% url 'budget:annee' tableau.mois.year %}">{% blocktranslate with annee=tableau.mois.year %}Récap {{ annee }}{% endblocktranslate %}</a>
+    {% if peut_modifier %}<a class="bouton-primaire" href="{% url 'budget:previsionnel' tableau.mois.year tableau.mois.month %}">{% translate "Modifier le prévisionnel" %}</a>{% endif %}
+  </nav>
+</div>
+
+<dl class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+  <div class="carte"><dt class="text-sm text-texte-discret">{% translate "Revenus" %}</dt><dd class="text-2xl font-semibold text-succes">{{ tableau.flux.revenus|euros }}</dd></div>
+  <div class="carte"><dt class="text-sm text-texte-discret">{% translate "Dépenses" %}</dt><dd class="text-2xl font-semibold">{{ tableau.flux.depenses|euros }}</dd></div>
+  <div class="carte"><dt class="text-sm text-texte-discret">{% translate "Épargne du mois" %}</dt><dd class="text-2xl font-semibold {% if tableau.flux.epargne < 0 %}text-danger{% endif %}">{{ tableau.flux.epargne|euros }}</dd></div>
+  <div class="carte"><dt class="text-sm text-texte-discret">{% translate "Taux d'épargne" %}</dt><dd class="text-2xl font-semibold">{{ tableau.flux.taux_epargne|pourcent }}</dd></div>
+</dl>
+
+{% if tableau.alertes %}
+<section class="message-error" role="alert">
+  <strong>{% translate "Budgets dépassés :" %}</strong>
+  {% for ligne in tableau.alertes %}{{ ligne.categorie.nom }} ({{ ligne.realise|euros }} / {{ ligne.budget|euros }}){% if not forloop.last %}, {% endif %}{% endfor %}
+</section>
+{% endif %}
+
+<section class="space-y-2" aria-labelledby="titre-depenses">
+  <h2 id="titre-depenses">{% translate "Dépenses par catégorie" %}</h2>
+  <div class="carte overflow-x-auto p-0">
+    <table class="tableau">
+      <thead>
+        <tr><th>{% translate "Catégorie" %}</th><th class="text-right">{% translate "Réalisé" %}</th><th class="text-right">{% translate "Budget" %}</th><th class="text-right">{% translate "Reste" %}</th></tr>
+      </thead>
+      <tbody>
+        {% for ligne in tableau.depenses %}
+          {% include "budget/_ligne_categorie.html" with ligne=ligne parente=True %}
+          {% for sous_ligne in ligne.sous_lignes %}{% include "budget/_ligne_categorie.html" with ligne=sous_ligne parente=False %}{% endfor %}
+        {% endfor %}
+        {% if tableau.depenses_non_classees %}
+        <tr><th class="font-semibold text-texte" scope="row">{% translate "À classer" %}</th><td class="montant">{{ tableau.depenses_non_classees|euros }}</td><td></td><td></td></tr>
+        {% endif %}
+      </tbody>
+      <tfoot>
+        <tr><th scope="row">{% translate "Total" %}</th><td class="montant font-semibold">{{ tableau.flux.depenses|euros }}</td><td class="montant">{% if tableau.budget_total %}{{ tableau.budget_total|euros }}{% endif %}</td><td></td></tr>
+      </tfoot>
+    </table>
+  </div>
+</section>
+
+<section class="space-y-2" aria-labelledby="titre-revenus">
+  <h2 id="titre-revenus">{% translate "Revenus par catégorie" %}</h2>
+  <div class="carte overflow-x-auto p-0">
+    <table class="tableau">
+      <tbody>
+        {% for ligne in tableau.revenus %}
+          <tr><th class="font-semibold text-texte" scope="row">{{ ligne.categorie.nom }}</th><td class="montant font-semibold">{{ ligne.realise|euros }}</td></tr>
+          {% for sous_ligne in ligne.sous_lignes %}
+          <tr><td class="pl-8">{{ sous_ligne.categorie.nom }}</td><td class="montant">{{ sous_ligne.realise|euros }}</td></tr>
+          {% endfor %}
+        {% endfor %}
+        {% if tableau.revenus_non_classes %}
+        <tr><th class="font-semibold text-texte" scope="row">{% translate "À classer" %}</th><td class="montant">{{ tableau.revenus_non_classes|euros }}</td></tr>
+        {% endif %}
+      </tbody>
+      <tfoot><tr><th scope="row">{% translate "Total" %}</th><td class="montant font-semibold">{{ tableau.flux.revenus|euros }}</td></tr></tfoot>
+    </table>
+  </div>
+</section>
+
+<section class="space-y-2" aria-labelledby="titre-comptes">
+  <h2 id="titre-comptes">{% translate "Par compte" %}</h2>
+  <div class="carte overflow-x-auto p-0">
+    <table class="tableau">
+      <thead>
+        <tr>
+          <th>{% translate "Compte" %}</th><th class="text-right">{% translate "Solde début" %}</th><th class="text-right">{% translate "Revenus" %}</th>
+          <th class="text-right">{% translate "Dépenses" %}</th><th class="text-right">{% translate "Virements" %}</th>
+          <th class="text-right">{% translate "Variation de valeur" %}</th><th class="text-right">{% translate "Solde fin" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ligne in tableau.comptes %}
+        <tr>
+          <td><a href="{% url 'banque:compte' ligne.compte.pk %}">{{ ligne.compte.nom }}</a></td>
+          <td class="montant">{{ ligne.solde_debut|euros }}</td>
+          <td class="montant">{{ ligne.revenus|euros_ou_vide }}</td>
+          <td class="montant">{{ ligne.depenses|euros_ou_vide }}</td>
+          <td class="montant">{{ ligne.virements|euros_ou_vide }}</td>
+          <td class="montant">{{ ligne.variation_de_valeur|euros_ou_vide }}</td>
+          <td class="montant font-semibold">{{ ligne.solde_fin|euros }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="text-texte-discret">{% translate "Aucun compte." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

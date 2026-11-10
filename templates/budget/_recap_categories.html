@@ -1,0 +1,38 @@
+{% load i18n formats %}
+<section class="space-y-2">
+  <h2>{{ titre }}</h2>
+  <div class="carte overflow-x-auto p-0">
+    <table class="tableau">
+      <thead>
+        <tr>
+          <th>{% translate "Catégorie" %}</th>
+          {% for mois in recap.mois %}<th class="text-right">{{ mois|date:"M" }}</th>{% endfor %}
+          <th class="text-right">{{ recap.annee }}</th><th class="text-right">{{ annee_precedente }}</th><th class="text-right">{% translate "Écart" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ligne in lignes %}
+        <tr>
+          <th class="font-semibold text-texte" scope="row">{{ ligne.categorie.nom }}</th>
+          {% for montant in ligne.par_mois %}<td class="montant font-semibold">{{ montant|euros_ou_vide }}</td>{% endfor %}
+          <td class="montant font-semibold">{{ ligne.total|euros }}</td><td class="montant">{{ ligne.total_precedent|euros_ou_vide }}</td><td class="montant">{{ ligne.variation|euros_ou_vide }}</td>
+        </tr>
+          {% for sous_ligne in ligne.sous_lignes %}
+          <tr>
+            <td class="pl-8">{{ sous_ligne.categorie.nom }}</td>
+            {% for montant in sous_ligne.par_mois %}<td class="montant">{{ montant|euros_ou_vide }}</td>{% endfor %}
+            <td class="montant">{{ sous_ligne.total|euros_ou_vide }}</td><td class="montant">{{ sous_ligne.total_precedent|euros_ou_vide }}</td><td class="montant">{{ sous_ligne.variation|euros_ou_vide }}</td>
+          </tr>
+          {% endfor %}
+        {% endfor %}
+        {% if total_non_classe %}
+        <tr>
+          <th class="font-semibold text-texte" scope="row">{% translate "À classer" %}</th>
+          {% for montant in non_classe %}<td class="montant">{{ montant|euros_ou_vide }}</td>{% endfor %}
+          <td class="montant font-semibold">{{ total_non_classe|euros }}</td><td></td><td></td>
+        </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</section>

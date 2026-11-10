@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% load i18n formats %}
+{% block titre %}{% blocktranslate with annee=recap.annee %}Récap {{ annee }}{% endblocktranslate %}{% endblock %}
+{% block contenu %}
+<div class="flex flex-wrap items-center justify-between gap-3">
+  <h1>{% blocktranslate with annee=recap.annee %}Récapitulatif {{ annee }}{% endblocktranslate %}</h1>
+  <nav class="flex gap-2" aria-label="{% translate 'Navigation entre les années' %}">
+    <a class="bouton-secondaire" href="{% url 'budget:annee' annee_precedente %}">← {{ annee_precedente }}</a>
+    <a class="bouton-secondaire" href="{% url 'budget:annee' annee_suivante %}">{{ annee_suivante }} →</a>
+  </nav>
+</div>
+
+<div class="carte overflow-x-auto p-0">
+  <table class="tableau">
+    <thead>
+      <tr><th></th><th class="text-right">{{ recap.annee }}</th><th class="text-right">{{ annee_precedente }}</th></tr>
+    </thead>
+    <tbody>
+      <tr><th scope="row">{% translate "Revenus" %}</th><td class="montant">{{ recap.total.revenus|euros }}</td><td class="montant">{{ recap.total_precedent.revenus|euros }}</td></tr>
+      <tr><th scope="row">{% translate "Dépenses" %}</th><td class="montant">{{ recap.total.depenses|euros }}</td><td class="montant">{{ recap.total_precedent.depenses|euros }}</td></tr>
+      <tr><th scope="row">{% translate "Épargne" %}</th><td class="montant font-semibold">{{ recap.total.epargne|euros }}</td><td class="montant">{{ recap.total_precedent.epargne|euros }}</td></tr>
+      <tr><th scope="row">{% translate "Taux d'épargne" %}</th><td class="montant font-semibold">{{ recap.total.taux_epargne|pourcent }}</td><td class="montant">{{ recap.total_precedent.taux_epargne|pourcent }}</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<section class="space-y-2" aria-labelledby="titre-mois">
+  <h2 id="titre-mois">{% translate "Mois par mois" %}</h2>
+  <div class="carte overflow-x-auto p-0">
+    <table class="tableau">
+      <thead>
+        <tr><th></th>{% for mois in recap.mois %}<th class="text-right"><a href="{% url 'budget:mois' mois.year mois.month %}">{{ mois|date:"M" }}</a></th>{% endfor %}<th class="text-right">{% translate "Total" %}</th></tr>
+      </thead>
+      <tbody>
+        <tr><th scope="row">{% translate "Revenus" %}</th>{% for flux in recap.flux_par_mois %}<td class="montant">{{ flux.revenus|euros_ou_vide }}</td>{% endfor %}<td class="montant font-semibold">{{ recap.total.revenus|euros }}</td></tr>
+        <tr><th scope="row">{% translate "Dépenses" %}</th>{% for flux in recap.flux_par_mois %}<td class="montant">{{ flux.depenses|euros_ou_vide }}</td>{% endfor %}<td class="montant font-semibold">{{ recap.total.depenses|euros }}</td></tr>
+        <tr><th scope="row">{% translate "Épargne" %}</th>{% for flux in recap.flux_par_mois %}<td class="montant {% if flux.epargne < 0 %}text-danger{% endif %}">{{ flux.epargne|euros_ou_vide }}</td>{% endfor %}<td class="montant font-semibold">{{ recap.total.epargne|euros }}</td></tr>
+        <tr><th scope="row">{% translate "Taux d'épargne" %}</th>{% for flux in recap.flux_par_mois %}<td class="montant">{{ flux.taux_epargne|pourcent }}</td>{% endfor %}<td class="montant font-semibold">{{ recap.total.taux_epargne|pourcent }}</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+{% include "budget/_recap_categories.html" with titre=_("Dépenses par catégorie") lignes=recap.depenses non_classe=recap.depenses_non_classees total_non_classe=recap.total_depenses_non_classees %}
+{% include "budget/_recap_categories.html" with titre=_("Revenus par catégorie") lignes=recap.revenus non_classe=recap.revenus_non_classes total_non_classe=recap.total_revenus_non_classes %}
+
+<section class="space-y-2" aria-labelledby="titre-comptes">
+  <h2 id="titre-comptes">{% translate "Solde des comptes en fin de mois" %}</h2>
+  <div class="carte overflow-x-auto p-0">
+    <table class="tableau">
+      <thead>
+        <tr><th>{% translate "Compte" %}</th><th class="text-right">{% translate "Début" %}</th>{% for mois in recap.mois %}<th class="text-right">{{ mois|date:"M" }}</th>{% endfor %}<th class="text-right">{% translate "Variation" %}</th></tr>
+      </thead>
+      <tbody>
+        {% for ligne in recap.comptes %}
+        <tr>
+          <td><a href="{% url 'banque:compte' ligne.compte.pk %}">{{ ligne.compte.nom }}</a></td>
+          <td class="montant">{{ ligne.solde_debut|euros }}</td>
+          {% for solde in ligne.fins_de_mois %}<td class="montant">{{ solde|euros }}</td>{% endfor %}
+          <td class="montant font-semibold {% if ligne.variation < 0 %}text-danger{% endif %}">{{ ligne.variation|euros }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="15" class="text-texte-discret">{% translate "Aucun compte." %}</td></tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr><th scope="row">{% translate "Patrimoine" %}</th><td class="montant">{{ recap.patrimoine_debut|euros }}</td><td colspan="11"></td><td class="montant font-semibold">{{ recap.patrimoine_fin|euros }}</td><td class="montant font-semibold">{{ recap.variation_du_patrimoine|euros }}</td></tr>
+      </tfoot>
+    </table>
+  </div>
+</section>
+{% endblock %}
