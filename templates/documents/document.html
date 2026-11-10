@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% load i18n formats %}
+{% block titre %}{{ document.titre }}{% endblock %}
+{% block contenu %}
+<p class="text-sm"><a href="{% url 'documents:liste' %}">← {% translate "Documents" %}</a></p>
+<div class="flex flex-wrap items-center justify-between gap-3">
+  <h1>{{ document.titre }}</h1>
+  {% if peut_modifier %}
+  <span class="flex flex-wrap gap-2">
+    {% if document.est_facture %}
+    <form method="post" action="{% url 'documents:paiement' document.pk %}">
+      {% csrf_token %}
+      <button class="bouton-secondaire">{% if document.paye_le %}{% translate "Remettre à payer" %}{% else %}{% translate "Marquer payée" %}{% endif %}</button>
+    </form>
+    {% endif %}
+    <a class="bouton-secondaire" href="{% url 'documents:modifier' document.pk %}">{% translate "Modifier" %}</a>
+    <a class="bouton-danger" href="{% url 'documents:supprimer' document.pk %}">{% translate "Supprimer" %}</a>
+  </span>
+  {% endif %}
+</div>
+
+<div class="grid gap-6 md:grid-cols-[1fr_2fr]">
+  <div class="carte space-y-3">
+    <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+      <dt class="text-texte-discret">{% translate "Type" %}</dt><dd>{{ document.get_type_display }}</dd>
+      {% if document.emetteur %}<dt class="text-texte-discret">{% translate "Émetteur" %}</dt><dd>{{ document.emetteur }}</dd>{% endif %}
+      <dt class="text-texte-discret">{% translate "Date" %}</dt><dd>{{ document.date|date:"j F Y" }}</dd>
+      {% if document.montant is not None %}<dt class="text-texte-discret">{% translate "Montant" %}</dt><dd class="tabular-nums">{{ document.montant|euros }}</dd>{% endif %}
+      {% if document.echeance %}<dt class="text-texte-discret">{% translate "Échéance" %}</dt><dd>{{ document.echeance|date:"j F Y" }}</dd>{% endif %}
+      {% if document.est_facture %}<dt class="text-texte-discret">{% translate "Statut" %}</dt><dd>{% include "documents/_statut.html" %}</dd>{% endif %}
+      {% if document.categorie %}<dt class="text-texte-discret">{% translate "Catégorie" %}</dt><dd>{{ document.categorie }}</dd>{% endif %}
+      {% if document.compte %}<dt class="text-texte-discret">{% translate "Compte" %}</dt><dd><a href="{% url 'banque:compte' document.compte.pk %}">{{ document.compte }}</a></dd>{% endif %}
+      {% if document.operation %}<dt class="text-texte-discret">{% translate "Opération" %}</dt><dd>{{ document.operation.libelle }} ({{ document.operation.date|date:"j M Y" }}, {{ document.operation.montant|euros }})</dd>{% endif %}
+    </dl>
+    {% if document.note %}<p class="text-sm">{{ document.note|linebreaksbr }}</p>{% endif %}
+    <p class="flex flex-wrap gap-2 pt-2">
+      <a class="bouton-secondaire" href="{% url 'documents:fichier' document.pk %}" target="_blank" rel="noopener">{% translate "Ouvrir" %}</a>
+      <a class="bouton-secondaire" href="{% url 'documents:fichier' document.pk %}?telecharger">{% translate "Télécharger" %}</a>
+    </p>
+    <p class="text-sm text-texte-discret">{{ document.nom_fichier }} · {{ document.taille|filesizeformat }}</p>
+  </div>
+  <div class="carte p-2">
+    {% if document.est_image %}
+      <img src="{% url 'documents:fichier' document.pk %}" alt="{{ document.titre }}" class="mx-auto max-h-[70vh]">
+    {% else %}
+      <p class="p-3 text-sm text-texte-discret">{% translate "Aperçu indisponible pour un PDF : utilisez « Ouvrir »." %}</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

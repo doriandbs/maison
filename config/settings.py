@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     "apps.foyers",
     "apps.banque",
     "apps.budget",
+    "apps.documents",
 ]
 
 MIDDLEWARE = [
@@ -130,6 +131,14 @@ STORAGES = {
         )
     },
 }
+
+# --- Fichiers déposés ---
+# Hors des fichiers statiques et sans MEDIA_URL : ils ne sont servis que par une vue
+# qui vérifie les droits (voir apps.documents.views.VueFichierDocument).
+MEDIA_ROOT = env.path("MEDIA_ROOT", default=RACINE / "media")
+TAILLE_MAX_DOCUMENT = env.int("TAILLE_MAX_DOCUMENT_MO", default=10) * 1024 * 1024
+# Au-delà de 2,5 Mo, Django passe par un fichier temporaire plutôt que la mémoire.
+DATA_UPLOAD_MAX_MEMORY_SIZE = 2_621_440
 
 # --- E-mail ---
 EMAIL_CONFIG = env.email_url("EMAIL_URL", default="consolemail://")

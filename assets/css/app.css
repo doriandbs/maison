@@ -35,10 +35,16 @@
   input[type="password"],
   input[type="number"],
   input[type="date"],
+  input[type="month"],
+  input[type="search"],
   select,
   textarea {
     @apply block w-full rounded-md border border-bordure bg-surface px-3 py-2 text-base
       focus:border-primaire-600 focus:outline-2 focus:outline-primaire-600;
+  }
+  input[type="file"] {
+    @apply block w-full text-sm file:mr-3 file:cursor-pointer file:rounded-md file:border
+      file:border-bordure file:bg-surface file:px-3 file:py-2 file:text-sm file:font-medium;
   }
   :focus-visible {
     @apply outline-2 outline-offset-2 outline-primaire-600;
@@ -100,6 +106,9 @@
   }
   .pastille {
     @apply inline-block rounded-full bg-primaire-100 px-2 py-0.5 text-xs font-medium text-primaire-700;
+  }
+  .pastille-alerte {
+    @apply inline-block rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900;
   }
   .message-success {
     @apply message border-green-200 bg-green-50 text-succes;

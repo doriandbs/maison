@@ -23,6 +23,7 @@ from django.views.generic import (
 
 from apps.foyers.acces import AccesFoyerMixin, VueDeFoyerMixin, VueFormulaireDeFoyerMixin
 from apps.socle.models import RequeteDeFoyer
+from apps.socle.views import PageFormulaireMixin
 
 from .forms import (
     FormulaireCategorie,
@@ -36,26 +37,6 @@ from .models import Categorie, Compte, Operation, ReleveSolde
 from .services import categories as service_categories
 from .services import operations as service_operations
 from .services import soldes as service_soldes
-
-
-class PageFormulaireMixin:
-    """Gabarit commun à tous les écrans de saisie : un titre, un formulaire, un retour."""
-
-    titre: Any = ""
-    url_retour: Any = ""
-
-    def get_template_names(self) -> list[str]:
-        return ["composants/page_formulaire.html"]
-
-    def get_success_url(self) -> str:
-        return str(self.url_retour)
-
-    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
-        contexte = super().get_context_data(**kwargs)  # type: ignore[misc]
-        contexte["titre"] = self.titre
-        contexte["url_retour"] = self.get_success_url()
-        return contexte
-
 
 # --- Comptes ---------------------------------------------------------------
 
@@ -151,7 +132,12 @@ class VueOperations(VueDeFoyerMixin, ListView):
     paginate_by = 50
 
     def get_queryset(self) -> RequeteDeFoyer:
-        operations = super().get_queryset().select_related("compte", "categorie__parent")
+        operations = (
+            super()
+            .get_queryset()
+            .select_related("compte", "categorie__parent")
+            .prefetch_related("documents")
+        )
         self.filtre = FormulaireFiltreOperations(self.request.GET or None, foyer=self.foyer)
         if self.filtre.is_valid():
             if compte := self.filtre.cleaned_data["compte"]:

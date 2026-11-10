@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% load i18n formats %}
+{% block titre %}{% translate "Documents" %}{% endblock %}
+{% block contenu %}
+<div class="flex flex-wrap items-center justify-between gap-3">
+  <h1>{% translate "Documents" %}</h1>
+  {% if peut_modifier %}
+  <a class="bouton-primaire" href="{% url 'documents:ajouter' %}">{% translate "Ajouter un document" %}</a>
+  {% endif %}
+</div>
+
+<form method="get" class="carte grid gap-4 sm:grid-cols-[2fr_1fr_auto_auto] sm:items-end">
+  {% for champ in filtre %}{% include "composants/champ.html" %}{% endfor %}
+  <button class="bouton-secondaire">{% translate "Filtrer" %}</button>
+</form>
+
+{% if documents %}
+<div class="carte overflow-x-auto p-0">
+  <table class="tableau">
+    <thead>
+      <tr>
+        <th>{% translate "Date" %}</th><th>{% translate "Document" %}</th><th>{% translate "Type" %}</th>
+        <th class="text-right">{% translate "Montant" %}</th><th>{% translate "Statut" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for document in documents %}
+      <tr>
+        <td class="whitespace-nowrap">{{ document.date|date:"j M Y" }}</td>
+        <td>
+          <a href="{% url 'documents:document' document.pk %}">{{ document.titre }}</a>
+          {% if document.emetteur %}<div class="text-sm text-texte-discret">{{ document.emetteur }}</div>{% endif %}
+        </td>
+        <td>{{ document.get_type_display }}</td>
+        <td class="montant">{{ document.montant|euros }}</td>
+        <td class="whitespace-nowrap">{% include "documents/_statut.html" %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% if is_paginated %}
+<nav class="flex items-center justify-between text-sm" aria-label="{% translate 'Pagination' %}">
+  {% if page_obj.has_previous %}<a href="?{{ parametres }}&page={{ page_obj.previous_page_number }}">← {% translate "Plus récents" %}</a>{% else %}<span></span>{% endif %}
+  <span>{% blocktranslate with page=page_obj.number total=page_obj.paginator.num_pages %}Page {{ page }} sur {{ total }}{% endblocktranslate %}</span>
+  {% if page_obj.has_next %}<a href="?{{ parametres }}&page={{ page_obj.next_page_number }}">{% translate "Plus anciens" %} →</a>{% else %}<span></span>{% endif %}
+</nav>
+{% endif %}
+{% else %}
+<div class="carte"><p>{% translate "Aucun document ne correspond." %}</p></div>
+{% endif %}
+{% endblock %}

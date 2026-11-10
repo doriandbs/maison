@@ -3,7 +3,7 @@
 {% block titre %}{{ titre }}{% endblock %}
 {% block carte %}
 <h1>{{ titre }}</h1>
-<form method="post" class="space-y-4">
+<form method="post" class="space-y-4"{% if form.is_multipart %} enctype="multipart/form-data"{% endif %}>
   {% include "composants/formulaire.html" with formulaire=form %}
   <div class="flex gap-3">
     <button class="bouton-primaire">{% translate "Enregistrer" %}</button>

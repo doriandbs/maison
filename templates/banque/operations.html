@@ -30,7 +30,7 @@
       {% for operation in operations %}
       <tr>
         <td class="whitespace-nowrap">{{ operation.date|date:"j M Y" }}</td>
-        <td>{{ operation.libelle }}{% if operation.note %}<div class="text-sm text-texte-discret">{{ operation.note }}</div>{% endif %}</td>
+        <td>{{ operation.libelle }}{% for document in operation.documents.all %} <a href="{% url 'documents:document' document.pk %}" title="{{ document.titre }}" aria-label="{% blocktranslate with titre=document.titre %}Justificatif : {{ titre }}{% endblocktranslate %}">📎</a>{% endfor %}{% if operation.note %}<div class="text-sm text-texte-discret">{{ operation.note }}</div>{% endif %}</td>
         <td>{{ operation.compte.nom }}</td>
         <td>
           {% if operation.est_virement %}<span class="pastille">{% translate "virement" %}</span>
@@ -41,6 +41,7 @@
         <td class="whitespace-nowrap text-right text-sm">
           {% if peut_modifier %}
             {% if not operation.est_virement %}<a href="{% url 'banque:modifier_operation' operation.pk %}">{% translate "Modifier" %}</a> ·{% endif %}
+            {% if not operation.est_virement %}<a href="{% url 'documents:ajouter' %}?operation={{ operation.pk }}">{% translate "Justificatif" %}</a> ·{% endif %}
             <a href="{% url 'banque:supprimer_operation' operation.pk %}">{% translate "Supprimer" %}</a>
           {% endif %}
         </td>
