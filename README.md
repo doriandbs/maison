@@ -16,6 +16,9 @@ uv run manage.py migrate && uv run manage.py createcachetable
 uv run manage.py runserver
 ```
 
+La base doit être en UTF-8. Si le serveur PostgreSQL a un autre encodage par défaut (WIN1252 sur
+certaines installations Windows) : `CREATE DATABASE maison OWNER maison TEMPLATE template0 ENCODING 'UTF8';`
+
 Les e-mails (activation de compte, invitations) s'affichent dans la console en développement.
 `uv run manage.py createsuperuser` donne accès à `/admin/`.
 
