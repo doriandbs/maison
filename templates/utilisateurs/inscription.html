@@ -8,7 +8,8 @@
 </div>
 <form method="post" class="space-y-4">
   {% include "composants/formulaire.html" with formulaire=form %}
+  {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
   <button class="bouton-primaire w-full">{% translate "Créer mon compte" %}</button>
 </form>
-<p class="border-t border-bordure pt-4 text-sm"><a href="{% url 'utilisateurs:connexion' %}">{% translate "J'ai déjà un compte" %}</a></p>
+<p class="border-t border-bordure pt-4 text-sm"><a href="{% url 'utilisateurs:connexion' %}{% if next %}?next={{ next|urlencode }}{% endif %}">{% translate "J'ai déjà un compte" %}</a></p>
 {% endblock %}

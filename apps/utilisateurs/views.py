@@ -6,6 +6,7 @@ from django.contrib.auth import views as vues_auth
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.generic import FormView
 
 from apps.socle.limites import limiter_par_ip
@@ -26,7 +27,22 @@ class VueInscription(FormView):
     def form_valid(self, form: FormulaireInscription) -> HttpResponse:
         utilisateur = form.save()
         login(self.request, utilisateur, backend="django.contrib.auth.backends.ModelBackend")
-        return redirect(settings.LOGIN_REDIRECT_URL)
+        return redirect(self._page_suivante() or settings.LOGIN_REDIRECT_URL)
+
+    def _page_suivante(self) -> str | None:
+        """Page demandée avant l'inscription (lien d'invitation), si elle est sur ce site."""
+        suivante = self.request.POST.get("next") or self.request.GET.get("next", "")
+        sure = url_has_allowed_host_and_scheme(
+            suivante,
+            allowed_hosts={self.request.get_host()},
+            require_https=self.request.is_secure(),
+        )
+        return suivante if sure else None
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        contexte = super().get_context_data(**kwargs)
+        contexte["next"] = self._page_suivante() or ""
+        return contexte
 
 
 @limiter_par_ip("30/h")

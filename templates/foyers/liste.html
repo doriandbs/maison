@@ -7,27 +7,6 @@
   <a class="bouton-primaire" href="{% url 'foyers:creer' %}">{% translate "Créer un foyer" %}</a>
 </div>
 
-{% if invitations_recues %}
-<section class="carte space-y-3" aria-labelledby="titre-invitations">
-  <h2 id="titre-invitations">{% translate "Invitations reçues" %}</h2>
-  <ul class="divide-y divide-bordure">
-    {% for invitation in invitations_recues %}
-    <li class="flex flex-wrap items-center justify-between gap-3 py-3">
-      <span>
-        <strong>{{ invitation.foyer.nom }}</strong>
-        <span class="pastille">{{ invitation.get_role_display }}</span>
-        {% if invitation.invite_par %}<span class="text-sm text-texte-discret">– {% blocktranslate with nom=invitation.invite_par %}invité par {{ nom }}{% endblocktranslate %}</span>{% endif %}
-      </span>
-      <form method="post" action="{% url 'foyers:accepter_invitation' invitation.pk %}">
-        {% csrf_token %}
-        <button class="bouton-primaire">{% translate "Rejoindre" %}</button>
-      </form>
-    </li>
-    {% endfor %}
-  </ul>
-</section>
-{% endif %}
-
 {% if adhesions %}
 <ul class="carte divide-y divide-bordure">
   {% for adhesion in adhesions %}
@@ -54,7 +33,7 @@
 </ul>
 {% else %}
 <div class="carte">
-  <p>{% translate "Vous n'appartenez encore à aucun foyer. Créez le vôtre, ou demandez à un proche de vous inviter avec l'adresse e-mail de votre compte." %}</p>
+  <p>{% translate "Vous n'appartenez encore à aucun foyer. Créez le vôtre, ou demandez à un proche de vous inviter : vous recevrez un lien par e-mail pour le rejoindre." %}</p>
 </div>
 {% endif %}
 {% endblock %}

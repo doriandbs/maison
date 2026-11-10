@@ -7,7 +7,7 @@ from django.urls import reverse
 
 from apps.foyers.middleware import CLE_SESSION_FOYER
 from apps.foyers.models import Adhesion, Foyer, Invitation, Role
-from apps.utilisateurs.tests.fabriques import FabriqueUtilisateur
+from apps.utilisateurs.tests.fabriques import MOT_DE_PASSE, FabriqueUtilisateur
 
 from .fabriques import FabriqueAdhesion, FabriqueFoyer, FabriqueInvitation
 
@@ -89,15 +89,18 @@ class TestIsolationEntreFoyers:
         assert reponse.status_code == 404
         assert monde.invitation_b.est_en_attente
 
-    def test_ne_peut_pas_accepter_une_invitation_adressee_a_quelqu_un_d_autre(self, client, monde):
-        reponse = _client_de(client, monde.alice).post(
-            reverse("foyers:accepter_invitation", args=[monde.invitation_b.pk])
-        )
+    def test_un_compte_a_l_adresse_invitee_ne_rejoint_pas_sans_le_lien(self, client):
+        """L'inscription ne confirme pas l'adresse : un imposteur peut créer un compte avec
+        celle de l'invité. Sans le lien reçu par e-mail, il ne voit ni ne rejoint rien."""
+        invitation = FabriqueInvitation(email="victime@example.org")
+        client.force_login(FabriqueUtilisateur(email="victime@example.org"))
 
-        assert reponse.status_code == 404
-        assert not Adhesion.objects.filter(
-            foyer=monde.foyer_b, utilisateur=monde.alice.utilisateur
-        ).exists()
+        liste = client.get(reverse("foyers:liste")).content.decode()
+        ancienne_route = client.post(f"/invitations/{invitation.pk}/accepter/")
+
+        assert invitation.foyer.nom not in liste
+        assert ancienne_route.status_code == 404
+        assert not Adhesion.objects.filter(foyer=invitation.foyer).exists()
 
     def test_un_lien_d_invitation_transmis_ne_sert_qu_a_son_destinataire(self, client, monde):
         monde.invitation_b.empreinte_jeton = _empreinte("jeton-vole")
@@ -248,15 +251,44 @@ class TestParcours:
         assert (adhesion.foyer, adhesion.role) == (admin.foyer, Role.LECTEUR)
         assert client.session[CLE_SESSION_FOYER] == admin.foyer_id
 
-    def test_accepter_depuis_la_liste_des_invitations_recues(self, client):
-        dora = FabriqueUtilisateur(email="dora@example.org")
-        invitation = FabriqueInvitation(email="dora@example.org")
-        client.force_login(dora)
+    def test_un_nouveau_venu_s_inscrit_depuis_le_lien_et_y_revient(self, client):
+        admin = FabriqueAdhesion(role=Role.ADMINISTRATEUR)
+        _client_de(client, admin).post(
+            reverse("foyers:inviter"), {"email": "eli@example.org", "role": Role.MEMBRE}
+        )
+        lien = re.search(r"https?://\S+", mail.outbox[0].body).group(0)
+        chemin = lien.removeprefix("http://testserver")
+        client.logout()
 
-        assert invitation.foyer.nom in client.get(reverse("foyers:liste")).content.decode()
-        client.post(reverse("foyers:accepter_invitation", args=[invitation.pk]))
+        connexion = client.get(lien, follow=True)
+        assert f"?next={chemin}" in connexion.content.decode()
+        inscription = client.post(
+            f"{reverse('utilisateurs:inscription')}?next={chemin}",
+            {
+                "first_name": "Eli",
+                "email": "eli@example.org",
+                "password1": MOT_DE_PASSE,
+                "password2": MOT_DE_PASSE,
+                "next": chemin,
+            },
+        )
+        assert inscription.url == chemin
+        client.post(chemin)
 
-        assert Adhesion.objects.filter(utilisateur=dora, foyer=invitation.foyer).exists()
+        assert Adhesion.objects.filter(foyer=admin.foyer, utilisateur__email="eli@example.org")
+
+    def test_le_lien_transfere_a_un_autre_compte_ne_sert_a_rien(self, client):
+        admin = FabriqueAdhesion(role=Role.ADMINISTRATEUR)
+        _client_de(client, admin).post(
+            reverse("foyers:inviter"), {"email": "dora@example.org", "role": Role.MEMBRE}
+        )
+        lien = re.search(r"https?://\S+", mail.outbox[0].body).group(0)
+        client.force_login(FabriqueUtilisateur(email="eve@example.org"))
+
+        assert "destinée à dora@example.org" in client.get(lien).content.decode()
+        client.post(lien)
+
+        assert not Adhesion.objects.filter(foyer=admin.foyer, utilisateur__email="eve@example.org")
 
     def test_revoquer_une_invitation(self, client):
         admin = FabriqueAdhesion(role=Role.ADMINISTRATEUR)

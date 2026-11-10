@@ -2,7 +2,7 @@
 
 {{ invitation.invite_par }} vous invite à rejoindre le foyer « {{ invitation.foyer.nom }} » sur Maison ({{ invitation.get_role_display }}).
 
-Pour accepter, connectez-vous (ou créez un compte avec l'adresse {{ invitation.email }}) puis ouvrez ce lien :
+Pour accepter, ouvrez ce lien. Vous pourrez vous connecter, ou créer votre compte avec l'adresse {{ invitation.email }} :
 
 {{ url_acceptation }}
 

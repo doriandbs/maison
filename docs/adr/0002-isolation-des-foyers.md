@@ -45,8 +45,11 @@ C'est le foyer ouvert à la connexion ; les autres sont des foyers annexes.
 ## Invitations
 
 - Le jeton n'est jamais stocké : seule son empreinte SHA-256 l'est. Validité 7 jours.
-- Une invitation ne peut être acceptée que par le compte dont l'e-mail (vérifié à l'inscription)
-  est celui de l'invitation : un lien transféré ne sert à personne d'autre.
+- Une invitation ne s'accepte **que par le lien reçu par e-mail** : l'inscription ne confirme
+  pas l'adresse (ADR 0003), c'est donc le jeton qui prouve l'accès à la boîte aux lettres.
+  Les invitations ne sont listées nulle part dans l'application pour le destinataire.
+- Le compte qui accepte doit en plus avoir l'adresse de l'invitation : un lien transféré ne
+  sert à personne d'autre.
 - On n'invite pas directement un propriétaire ; un propriétaire promeut un membre.
 
 ## Prévu plus tard : visibilité par membre

@@ -22,11 +22,6 @@ urlpatterns = [
         views.VueRevoquerInvitation.as_view(),
         name="revoquer_invitation",
     ),
-    # Invitations reçues
-    path(
-        "invitations/<int:pk>/accepter/",
-        views.VueAccepterInvitationRecue.as_view(),
-        name="accepter_invitation",
-    ),
+    # Lien reçu par e-mail : seul moyen de rejoindre un foyer.
     path("invitations/<str:jeton>/", views.VueInvitation.as_view(), name="invitation"),
 ]

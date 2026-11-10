@@ -41,6 +41,14 @@ class TestInscription:
         assert int(client.session["_auth_user_id"]) == utilisateur.pk
         assert mail.outbox == []
 
+    @pytest.mark.parametrize("suivante", ["https://pirate.example/", "//pirate.example/"])
+    def test_la_page_suivante_ne_sort_pas_du_site(self, client, suivante):
+        reponse = client.post(
+            reverse("utilisateurs:inscription"), DONNEES_INSCRIPTION | {"next": suivante}
+        )
+
+        assert reponse.url == reverse("accueil")
+
     def test_adresse_deja_prise_quelle_que_soit_la_casse(self, client):
         FabriqueUtilisateur(email="alice@example.org")
 

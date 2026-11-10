@@ -19,16 +19,9 @@ from .models import Adhesion, Invitation, Role
 
 
 class VueMesFoyers(LoginRequiredMixin, TemplateView):
+    # Les invitations reçues n'y sont pas listées : un compte peut être créé avec n'importe
+    # quelle adresse sans la confirmer, seul le lien envoyé par e-mail prouve qu'elle est à soi.
     template_name = "foyers/liste.html"
-
-    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
-        contexte = super().get_context_data(**kwargs)
-        contexte["invitations_recues"] = (
-            Invitation.objects.en_attente()
-            .filter(email=self.request.user.email)  # type: ignore[union-attr]
-            .select_related("foyer", "invite_par")
-        )
-        return contexte
 
 
 class VueCreerFoyer(LoginRequiredMixin, FormView):
@@ -154,7 +147,11 @@ class VueRetirerMembre(AccesFoyerMixin, View):
 
 
 class VueInvitation(LoginRequiredMixin, View):
-    """Lien reçu par e-mail : affiche l'invitation puis l'accepte sur confirmation."""
+    """Lien reçu par e-mail : seul chemin pour rejoindre un foyer.
+
+    Le jeton prouve l'accès à la boîte aux lettres invitée ; l'adresse du compte doit en plus
+    être celle de l'invitation, pour qu'un lien transféré ne serve à personne d'autre.
+    """
 
     def _invitation(self, jeton: str) -> Invitation:
         return get_object_or_404(
@@ -172,18 +169,6 @@ class VueInvitation(LoginRequiredMixin, View):
 
     def post(self, request: HttpRequest, jeton: str) -> HttpResponse:
         return _accepter(request, self._invitation(jeton))
-
-
-class VueAccepterInvitationRecue(LoginRequiredMixin, View):
-    """Acceptation depuis « Mes foyers » : l'adresse e-mail vérifiée du compte fait foi."""
-
-    def post(self, request: HttpRequest, pk: int) -> HttpResponse:
-        invitation = get_object_or_404(
-            Invitation.objects.en_attente(),
-            pk=pk,
-            email=request.user.email,  # type: ignore[union-attr]
-        )
-        return _accepter(request, invitation)
 
 
 def _accepter(request: HttpRequest, invitation: Invitation) -> HttpResponse:

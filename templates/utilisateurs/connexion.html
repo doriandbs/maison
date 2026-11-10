@@ -13,6 +13,6 @@
 </form>
 <div class="flex flex-wrap items-center justify-between gap-2 border-t border-bordure pt-4 text-sm">
   <a href="{% url 'utilisateurs:mot_de_passe_oublie' %}">{% translate "Mot de passe oublié ?" %}</a>
-  {% if inscription_ouverte %}<a class="font-medium" href="{% url 'utilisateurs:inscription' %}">{% translate "Créer un compte" %}</a>{% endif %}
+  {% if inscription_ouverte %}<a class="font-medium" href="{% url 'utilisateurs:inscription' %}{% if next %}?next={{ next|urlencode }}{% endif %}">{% translate "Créer un compte" %}</a>{% endif %}
 </div>
 {% endblock %}
