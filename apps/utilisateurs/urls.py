@@ -7,8 +7,6 @@ app_name = "utilisateurs"
 
 urlpatterns = [
     path("inscription/", views.VueInscription.as_view(), name="inscription"),
-    path("inscription/envoyee/", views.VueInscriptionEnvoyee.as_view(), name="inscription_envoyee"),
-    path("activer/<uidb64>/<jeton>/", views.VueActivation.as_view(), name="activation"),
     path("connexion/", views.VueConnexion.as_view(), name="connexion"),
     path("deconnexion/", LogoutView.as_view(), name="deconnexion"),
     path("mot-de-passe/oublie/", views.VueMotDePasseOublie.as_view(), name="mot_de_passe_oublie"),

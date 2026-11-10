@@ -4,8 +4,8 @@ Date : 2026-11-10 · Statut : accepté (réponses de Dorian aux questions de cad
 
 ## Comptes et inscription
 
-- Inscription ouverte à tous (`INSCRIPTION_OUVERTE=True`), avec confirmation de l'adresse e-mail,
-  limitation de débit et verrouillage après 5 échecs de connexion.
+- Inscription ouverte à tous (`INSCRIPTION_OUVERTE=True`), sans confirmation de l'adresse e-mail
+  (compte actif et connecté dès l'inscription), avec limitation de débit et verrouillage après 5 échecs de connexion.
 - Devise unique : l'euro.
 
 ## Banque

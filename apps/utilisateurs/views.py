@@ -1,18 +1,15 @@
 from typing import Any
 
 from django.conf import settings
-from django.contrib import messages
+from django.contrib.auth import login
 from django.contrib.auth import views as vues_auth
 from django.http import Http404, HttpRequest, HttpResponse
-from django.shortcuts import redirect, render
-from django.urls import reverse, reverse_lazy
-from django.utils.translation import gettext as _
-from django.views import View
-from django.views.generic import FormView, TemplateView
+from django.shortcuts import redirect
+from django.urls import reverse_lazy
+from django.views.generic import FormView
 
 from apps.socle.limites import limiter_par_ip
 
-from . import services
 from .forms import FormulaireConnexion, FormulaireInscription
 
 
@@ -20,7 +17,6 @@ from .forms import FormulaireConnexion, FormulaireInscription
 class VueInscription(FormView):
     template_name = "utilisateurs/inscription.html"
     form_class = FormulaireInscription
-    success_url = reverse_lazy("utilisateurs:inscription_envoyee")
 
     def dispatch(self, request: HttpRequest, *args: Any, **kwargs: Any) -> Any:
         if not settings.INSCRIPTION_OUVERTE:
@@ -28,28 +24,9 @@ class VueInscription(FormView):
         return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form: FormulaireInscription) -> HttpResponse:
-        # Le compte reste inactif tant que l'adresse e-mail n'est pas confirmée.
-        utilisateur = form.save(commit=False)
-        utilisateur.is_active = False
-        utilisateur.save()
-        uid, jeton = services.identifiants_activation(utilisateur)
-        url = self.request.build_absolute_uri(
-            reverse("utilisateurs:activation", kwargs={"uidb64": uid, "jeton": jeton})
-        )
-        services.envoyer_email_activation(utilisateur, url)
-        return super().form_valid(form)
-
-
-class VueInscriptionEnvoyee(TemplateView):
-    template_name = "utilisateurs/inscription_envoyee.html"
-
-
-class VueActivation(View):
-    def get(self, request: HttpRequest, uidb64: str, jeton: str) -> HttpResponse:
-        if services.activer_compte(uidb64, jeton) is None:
-            return render(request, "utilisateurs/activation_invalide.html", status=400)
-        messages.success(request, _("Votre compte est activé, vous pouvez vous connecter."))
-        return redirect("utilisateurs:connexion")
+        utilisateur = form.save()
+        login(self.request, utilisateur, backend="django.contrib.auth.backends.ModelBackend")
+        return redirect(settings.LOGIN_REDIRECT_URL)
 
 
 @limiter_par_ip("30/h")

@@ -30,29 +30,16 @@ def _connecter(client, email: str, mot_de_passe: str = MOT_DE_PASSE):
 
 
 class TestInscription:
-    def test_cree_un_compte_inactif_et_envoie_le_lien(self, client):
+    def test_cree_un_compte_actif_et_connecte(self, client):
         reponse = client.post(reverse("utilisateurs:inscription"), DONNEES_INSCRIPTION)
 
         assert reponse.status_code == 302
+        assert reponse.url == reverse("accueil")
         utilisateur = Utilisateur.objects.get()
         assert utilisateur.email == "alice@example.org"
-        assert not utilisateur.is_active
-        assert mail.outbox[0].to == ["alice@example.org"]
-
-    def test_le_lien_active_le_compte_une_seule_fois(self, client):
-        client.post(reverse("utilisateurs:inscription"), DONNEES_INSCRIPTION)
-        lien = _lien(mail.outbox[0])
-
-        assert client.get(lien).status_code == 302
-        assert Utilisateur.objects.get().is_active
-        assert client.get(lien).status_code == 400
-
-    def test_lien_falsifie_refuse(self, client):
-        client.post(reverse("utilisateurs:inscription"), DONNEES_INSCRIPTION)
-        lien = _lien(mail.outbox[0]).rstrip("/")[:-3] + "abc/"
-
-        assert client.get(lien).status_code == 400
-        assert not Utilisateur.objects.get().is_active
+        assert utilisateur.is_active
+        assert int(client.session["_auth_user_id"]) == utilisateur.pk
+        assert mail.outbox == []
 
     def test_adresse_deja_prise_quelle_que_soit_la_casse(self, client):
         FabriqueUtilisateur(email="alice@example.org")

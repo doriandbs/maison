@@ -17,8 +17,6 @@ MODELES_HORS_FOYER = {Utilisateur, Foyer}
 URLS_PUBLIQUES = {
     "sante",
     "utilisateurs:inscription",
-    "utilisateurs:inscription_envoyee",
-    "utilisateurs:activation",
     "utilisateurs:connexion",
     "utilisateurs:deconnexion",
     "utilisateurs:mot_de_passe_oublie",
