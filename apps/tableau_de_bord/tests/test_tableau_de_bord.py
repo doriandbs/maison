@@ -127,3 +127,25 @@ class TestVue:
         client.force_login(adhesion.utilisateur)
 
         assert "Ajouter un compte" in client.get(reverse("accueil")).content.decode()
+
+
+class TestRepartition:
+    def test_parts_triees_regroupees_et_cercle_ferme(self, foyer):
+        compte = FabriqueCompte(foyer=foyer)
+        montants = {"A": "500", "B": "200", "C": "100", "D": "100", "E": "50", "F": "40", "G": "10"}
+        for nom, montant in montants.items():
+            categorie = FabriqueSousCategorie(parent__foyer=foyer, parent__nom=nom)
+            FabriqueOperation(
+                compte=compte, categorie=categorie, montant=-D(montant), date=date(2026, 3, 2)
+            )
+        FabriqueOperation(compte=compte, montant=D("-30"), date=date(2026, 3, 3))
+
+        parts = synthese(foyer, AUJOURD_HUI).repartition
+
+        assert [p.libelle for p in parts] == ["A", "B", "C", "D", "Autres", "À classer"]
+        assert [p.montant for p in parts][-2:] == [D("100"), D("30")]
+        assert parts[0].debut == 0 and parts[-1].fin == 100
+        assert all(a.fin == b.debut for a, b in zip(parts, parts[1:], strict=False))
+
+    def test_sans_depense_pas_d_anneau(self, foyer):
+        assert synthese(foyer, AUJOURD_HUI).repartition == []

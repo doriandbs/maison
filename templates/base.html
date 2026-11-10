@@ -1,57 +1,103 @@
-{% load static i18n %}<!doctype html>
+{% load static i18n icones %}<!doctype html>
 <html lang="fr">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f4f6f8" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0a0e15" media="(prefers-color-scheme: dark)">
   <title>{% block titre %}{% endblock %} – Maison</title>
+  <link rel="preload" href="{% static 'fonts/inter-variable.woff2' %}" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  <script src="{% static 'js/app.js' %}" defer></script>
 </head>
-<body class="min-h-screen">
-  <a href="#contenu" class="sr-only focus:not-sr-only">{% translate "Aller au contenu" %}</a>
-  <header class="border-b border-bordure bg-surface">
-    <div class="mx-auto flex max-w-5xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
-      <a href="{% url 'accueil' %}" class="text-lg font-semibold text-texte">Maison</a>
-      {% if user.is_authenticated %}
-        {% if adhesion_courante %}
-          <details class="relative">
-            <summary class="bouton-secondaire">{{ adhesion_courante.foyer.nom }}</summary>
-            <div class="carte absolute z-10 mt-1 w-64 space-y-1 p-2">
-              {% for adhesion in adhesions %}
-                <form method="post" action="{% url 'foyers:activer' adhesion.foyer_id %}">
-                  {% csrf_token %}
-                  <button class="w-full cursor-pointer rounded px-2 py-1.5 text-left text-sm hover:bg-primaire-50"
-                          {% if adhesion == adhesion_courante %}aria-current="true"{% endif %}>
-                    {{ adhesion.foyer.nom }}
-                    {% if adhesion.est_principal %}<span class="pastille">{% translate "principal" %}</span>{% endif %}
-                  </button>
-                </form>
-              {% endfor %}
-              <a class="block px-2 py-1.5 text-sm" href="{% url 'foyers:liste' %}">{% translate "Gérer mes foyers" %}</a>
-            </div>
-          </details>
-          <nav class="flex flex-wrap gap-x-4 gap-y-1 text-sm" aria-label="{% translate 'Navigation principale' %}">
-            <a href="{% url 'accueil' %}">{% translate "Accueil" %}</a>
-            <a href="{% url 'banque:comptes' %}">{% translate "Comptes" %}</a>
-            <a href="{% url 'banque:operations' %}">{% translate "Opérations" %}</a>
-            <a href="{% url 'budget:courant' %}">{% translate "Budget" %}</a>
-            <a href="{% url 'documents:liste' %}">{% translate "Documents" %}</a>
-            <a href="{% url 'banque:categories' %}">{% translate "Catégories" %}</a>
-            <a href="{% url 'foyers:membres' %}">{% translate "Membres" %}</a>
-          </nav>
-        {% endif %}
-        <form method="post" action="{% url 'utilisateurs:deconnexion' %}" class="ml-auto flex items-center gap-3">
-          {% csrf_token %}
-          <span class="hidden text-sm text-texte-discret sm:inline">{{ user.email }}</span>
-          <button class="bouton-secondaire">{% translate "Déconnexion" %}</button>
-        </form>
-      {% endif %}
-    </div>
+<body>
+  <a href="#contenu" class="bouton-secondaire sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50">{% translate "Aller au contenu" %}</a>
+{% comment %}
+  Trois habillages autour d'un même bloc « contenu » (Django n'accepte qu'un bloc de chaque nom) :
+  application complète, compte sans foyer, visiteur non connecté.
+{% endcomment %}
+{% if user.is_authenticated and adhesion_courante %}
+  <div class="lg:grid lg:grid-cols-[17rem_minmax(0,1fr)]">
+    <aside class="barre-laterale" aria-label="{% translate 'Menu' %}">
+      <a href="{% url 'accueil' %}" class="logo"><span class="logo-marque">{% icone "foyer" %}</span>Maison</a>
+      {% include "composants/_selecteur_foyer.html" %}
+      <nav class="space-y-1" aria-label="{% translate 'Navigation principale' %}">
+        {% for entree in navigation %}
+        <a class="lien-nav" href="{{ entree.url }}" {% if entree.actif %}aria-current="page"{% endif %}>{% icone entree.icone %}{{ entree.libelle }}</a>
+        {% endfor %}
+      </nav>
+      <form method="post" action="{% url 'utilisateurs:deconnexion' %}" class="mt-auto flex items-center gap-3 px-2">
+        {% csrf_token %}
+        <span class="grid size-9 shrink-0 place-items-center rounded-full bg-surface-2 text-sm font-semibold ring-1 ring-bordure" aria-hidden="true">{{ user.email|first|upper }}</span>
+        <span class="min-w-0 flex-1 truncate text-sm text-texte-discret">{{ user.email }}</span>
+        <button class="bouton-discret bouton-icone" title="{% translate 'Déconnexion' %}">{% icone "deconnexion" %}<span class="sr-only">{% translate "Déconnexion" %}</span></button>
+      </form>
+    </aside>
+    <div class="min-w-0">
+      <header class="barre-mobile">
+        <a href="{% url 'accueil' %}" class="logo px-0"><span class="logo-marque size-8">{% icone "foyer" classe="size-4" %}</span><span class="sr-only">Maison</span></a>
+        {% include "composants/_selecteur_foyer.html" with compact=True %}
+      </header>
+      <main id="contenu" class="cascade mx-auto max-w-6xl space-y-6 px-4 pt-6 pb-28 sm:px-6 lg:px-10 lg:pt-10 lg:pb-12" style="view-transition-name: contenu">
+{% elif user.is_authenticated %}
+  <header class="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-5">
+    <a href="{% url 'foyers:liste' %}" class="logo px-0"><span class="logo-marque">{% icone "foyer" %}</span>Maison</a>
+    <form method="post" action="{% url 'utilisateurs:deconnexion' %}">
+      {% csrf_token %}
+      <button class="bouton-discret">{% icone "deconnexion" classe="size-4" %}{% translate "Déconnexion" %}</button>
+    </form>
   </header>
-  <main id="contenu" class="mx-auto max-w-5xl space-y-6 px-4 py-8">
-    {% for message in messages %}
-      <p class="message-{{ message.level_tag }}" role="status">{{ message }}</p>
-    {% endfor %}
-    {% block contenu %}{% endblock %}
+  <main id="contenu" class="cascade mx-auto max-w-3xl space-y-6 px-4 pb-12" style="view-transition-name: contenu">
+{% else %}
+  <main id="contenu" class="scene">
+    <span class="scene-tache -top-32 -left-24 size-[28rem] bg-primaire-500/25" aria-hidden="true"></span>
+    <span class="scene-tache -right-24 -bottom-40 size-[30rem] bg-indigo-500/20 [animation-duration:20s]" aria-hidden="true"></span>
+    <div class="cascade w-full max-w-md space-y-6">
+      <a href="{% url 'accueil' %}" class="logo justify-center text-xl"><span class="logo-marque size-10">{% icone "foyer" %}</span>Maison</a>
+{% endif %}
+{% block contenu %}{% endblock %}
+{% if user.is_authenticated and adhesion_courante %}
+      </main>
+    </div>
+  </div>
+  <nav class="onglets" aria-label="{% translate 'Navigation principale' %}">
+    {% for entree in navigation %}{% if entree.onglet %}
+    <a class="onglet" href="{{ entree.url }}" {% if entree.actif %}aria-current="page"{% endif %}>{% icone entree.icone %}{{ entree.libelle }}</a>
+    {% endif %}{% endfor %}
+    <details class="menu">
+      <summary class="onglet">{% icone "menu" %}{% translate "Plus" %}</summary>
+      <div class="menu-panneau right-0 bottom-full mb-3 origin-bottom">
+        {% for entree in navigation %}{% if not entree.onglet %}
+        <a class="element-menu justify-start gap-3" href="{{ entree.url }}" {% if entree.actif %}aria-current="page"{% endif %}>{% icone entree.icone classe="size-5 text-texte-discret" %}{{ entree.libelle }}</a>
+        {% endif %}{% endfor %}
+        <a class="element-menu justify-start gap-3" href="{% url 'foyers:liste' %}">{% icone "foyer" classe="size-5 text-texte-discret" %}{% translate "Mes foyers" %}</a>
+        <div class="my-1 border-t border-bordure"></div>
+        <form method="post" action="{% url 'utilisateurs:deconnexion' %}">
+          {% csrf_token %}
+          <button class="element-menu justify-start gap-3 text-danger">{% icone "deconnexion" classe="size-5" %}{% translate "Déconnexion" %}</button>
+        </form>
+      </div>
+    </details>
+  </nav>
+{% elif user.is_authenticated %}
   </main>
+{% else %}
+    </div>
+  </main>
+{% endif %}
+
+  {% if messages %}
+  <div class="notifications">
+    {% for message in messages %}
+    <div class="toast toast-{{ message.level_tag }}" role="{% if message.level_tag == 'error' %}alert{% else %}status{% endif %}">
+      <span class="vignette size-7 rounded-lg {% if message.level_tag == 'error' %}vignette-sortie{% elif message.level_tag == 'success' %}vignette-entree{% endif %}">
+        {% if message.level_tag == "error" %}{% icone "alerte" classe="size-4" %}{% else %}{% icone "valider" classe="size-4" %}{% endif %}
+      </span>
+      <p class="flex-1 pt-0.5">{{ message }}</p>
+      <button type="button" class="-mr-1 grid size-7 shrink-0 cursor-pointer place-items-center rounded-lg text-texte-discret hover:bg-surface-2" data-fermer aria-label="{% translate 'Fermer' %}">{% icone "fermer" classe="size-4" %}</button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
 </body>
 </html>

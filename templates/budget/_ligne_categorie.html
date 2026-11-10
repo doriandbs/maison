@@ -1,11 +1,11 @@
 {% load i18n formats %}
-<tr>
+<tr {% if ligne.est_vide and not parente %}class="text-texte-discret/70"{% endif %}>
   {% if parente %}<th class="font-semibold text-texte" scope="row">{{ ligne.categorie.nom }}</th>{% else %}<td class="pl-8">{{ ligne.categorie.nom }}</td>{% endif %}
   <td class="montant {% if parente %}font-semibold{% endif %}">{{ ligne.realise|euros_ou_vide }}</td>
   <td class="montant">
     {% if ligne.budget is not None %}
       {{ ligne.budget|euros }}
-      <progress class="jauge {% if ligne.depassement %}jauge-depassee{% endif %}" max="{{ ligne.budget|nombre_brut }}" value="{{ ligne.realise|nombre_brut }}">{{ ligne.realise|euros }}</progress>
+      <span class="jauge ml-auto w-24 {% if ligne.depassement %}jauge-depassee{% endif %}" aria-hidden="true"><span style="--part: {{ ligne.realise|part_de:ligne.budget }}"></span></span>
     {% endif %}
   </td>
   <td class="montant {% if ligne.depassement %}font-semibold text-danger{% endif %}">

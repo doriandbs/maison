@@ -2,7 +2,7 @@
 {% load i18n formats %}
 {% block titre %}{% blocktranslate with annee=recap.annee %}Récap {{ annee }}{% endblocktranslate %}{% endblock %}
 {% block contenu %}
-<div class="flex flex-wrap items-center justify-between gap-3">
+<div class="en-tete">
   <h1>{% blocktranslate with annee=recap.annee %}Récapitulatif {{ annee }}{% endblocktranslate %}</h1>
   <nav class="flex gap-2" aria-label="{% translate 'Navigation entre les années' %}">
     <a class="bouton-secondaire" href="{% url 'budget:annee' annee_precedente %}">← {{ annee_precedente }}</a>

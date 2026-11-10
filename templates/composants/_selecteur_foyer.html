@@ -1,0 +1,30 @@
+{% load i18n icones %}
+{% comment %}Sélecteur du foyer courant. Paramètre : compact (barre du téléphone).{% endcomment %}
+<details class="menu">
+  <summary class="{% if compact %}flex items-center gap-2 rounded-xl px-2 py-1.5 text-sm font-medium hover:bg-surface-2{% else %}flex w-full items-center gap-3 rounded-2xl border border-bordure bg-surface p-2.5 shadow-carte transition-colors hover:bg-surface-2{% endif %}">
+    <span class="grid size-8 shrink-0 place-items-center rounded-lg bg-primaire-50 text-sm font-semibold text-primaire-600" aria-hidden="true">{{ adhesion_courante.foyer.nom|first|upper }}</span>
+    <span class="min-w-0 flex-1 text-left {% if compact %}max-w-40{% endif %}">
+      <span class="block truncate text-sm font-semibold">{{ adhesion_courante.foyer.nom }}</span>
+      {% if not compact %}<span class="block truncate text-xs text-texte-discret">{{ adhesion_courante.get_role_display }}</span>{% endif %}
+    </span>
+    {% icone "chevron-bas" classe="size-4 shrink-0 text-texte-discret" %}
+    <span class="sr-only">{% translate "Changer de foyer" %}</span>
+  </summary>
+  <div class="menu-panneau {% if compact %}right-0{% endif %}">
+    <p class="px-3 pt-1 pb-1.5 text-xs font-medium text-texte-discret">{% translate "Vos foyers" %}</p>
+    {% for adhesion in adhesions %}
+      <form method="post" action="{% url 'foyers:activer' adhesion.foyer_id %}">
+        {% csrf_token %}
+        <button class="element-menu" {% if adhesion == adhesion_courante %}aria-current="true"{% endif %}>
+          <span class="flex min-w-0 items-center gap-2">
+            <span class="truncate">{{ adhesion.foyer.nom }}</span>
+            {% if adhesion.est_principal %}<span class="pastille-neutre">{% translate "principal" %}</span>{% endif %}
+          </span>
+          {% if adhesion == adhesion_courante %}{% icone "valider" classe="size-4 text-primaire-600" %}{% endif %}
+        </button>
+      </form>
+    {% endfor %}
+    <div class="my-1 border-t border-bordure"></div>
+    <a class="element-menu" href="{% url 'foyers:liste' %}">{% translate "Gérer mes foyers" %}{% icone "chevron-droite" classe="size-4 text-texte-discret" %}</a>
+  </div>
+</details>

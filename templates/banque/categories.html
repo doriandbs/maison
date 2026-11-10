@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% load i18n %}
+{% load i18n icones %}
 {% block titre %}{% translate "Catégories" %}{% endblock %}
 {% block contenu %}
-<div class="flex flex-wrap items-center justify-between gap-3">
+<div class="en-tete">
   <h1>{% translate "Catégories" %}</h1>
-  {% if peut_modifier %}<a class="bouton-primaire" href="{% url 'banque:ajouter_categorie' %}">{% translate "Ajouter une catégorie" %}</a>{% endif %}
+  {% if peut_modifier %}<a class="bouton-primaire" href="{% url 'banque:ajouter_categorie' %}">{% icone "plus" classe="size-4" %}{% translate "Ajouter une catégorie" %}</a>{% endif %}
 </div>
 <p class="aide">{% translate "Chaque opération se range dans une sous-catégorie. Une catégorie archivée n'est plus proposée à la saisie mais reste dans l'historique." %}</p>
 

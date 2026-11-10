@@ -3,7 +3,7 @@
 {% block titre %}{{ document.titre }}{% endblock %}
 {% block contenu %}
 <p class="text-sm"><a href="{% url 'documents:liste' %}">← {% translate "Documents" %}</a></p>
-<div class="flex flex-wrap items-center justify-between gap-3">
+<div class="en-tete">
   <h1>{{ document.titre }}</h1>
   {% if peut_modifier %}
   <span class="flex flex-wrap gap-2">

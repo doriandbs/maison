@@ -2,33 +2,160 @@
 @source "../../templates";
 @source "../../apps";
 
-/* Charte : toute couleur ou composant réutilisé est défini ici, une seule fois. */
-@theme {
-  --color-primaire-50: var(--color-teal-50);
-  --color-primaire-100: var(--color-teal-100);
-  --color-primaire-600: var(--color-teal-700);
-  --color-primaire-700: var(--color-teal-800);
-  --color-fond: var(--color-stone-50);
-  --color-surface: #ffffff;
-  --color-bordure: var(--color-stone-200);
-  --color-texte: var(--color-stone-900);
-  --color-texte-discret: var(--color-stone-600);
-  --color-danger: var(--color-red-700);
-  --color-succes: var(--color-green-700);
+/* =============================================================================
+   Charte Maison : toute couleur, ombre ou composant réutilisé est défini ici, une seule fois.
+   Les couleurs sont des variables CSS : le mode sombre ne fait que les redéfinir.
+   ============================================================================= */
+
+@font-face {
+  font-family: "Inter Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("../fonts/inter-variable.woff2") format("woff2-variations");
 }
 
+:root {
+  color-scheme: light;
+  --fond: #f4f6f8;
+  --surface: #ffffff;
+  --surface-2: #f6f8fa;
+  --bordure: rgb(15 23 42 / 0.08);
+  --bordure-forte: rgb(15 23 42 / 0.15);
+  --texte: #0f172a;
+  --texte-discret: #586274;
+
+  --primaire-50: #effcf9;
+  --primaire-100: #d2f5ee;
+  --primaire-500: #14b8a6;
+  --primaire-600: #0f766e;
+  --primaire-700: #115e59;
+  --primaire-plein: #0f766e;
+  --sur-primaire: #ffffff;
+
+  --danger: #b91c1c;
+  --danger-doux: #fef2f2;
+  --succes: #15803d;
+  --succes-doux: #f0fdf4;
+  --alerte: #a16207;
+  --alerte-doux: #fefce8;
+
+  /* Séries des graphiques : distinctes en clair comme en sombre. */
+  --serie-1: #0d9488;
+  --serie-2: #6366f1;
+  --serie-3: #f59e0b;
+  --serie-4: #e11d48;
+  --serie-5: #0ea5e9;
+  --serie-6: #94a3b8;
+
+  --ombre-carte: 0 1px 2px rgb(15 23 42 / 0.04), 0 6px 20px -8px rgb(15 23 42 / 0.08);
+  --ombre-haute: 0 2px 4px rgb(15 23 42 / 0.05), 0 18px 40px -12px rgb(15 23 42 / 0.18);
+  --halo-1: rgb(20 184 166 / 0.14);
+  --halo-2: rgb(99 102 241 / 0.1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --fond: #0a0e15;
+    --surface: #121823;
+    --surface-2: #171e2b;
+    --bordure: rgb(255 255 255 / 0.07);
+    --bordure-forte: rgb(255 255 255 / 0.14);
+    --texte: #e7eaf0;
+    --texte-discret: #98a2b3;
+
+    --primaire-50: rgb(45 212 191 / 0.1);
+    --primaire-100: rgb(45 212 191 / 0.18);
+    --primaire-500: #2dd4bf;
+    --primaire-600: #5eead4;
+    --primaire-700: #99f6e4;
+    --primaire-plein: #14b8a6;
+    --sur-primaire: #042f2c;
+
+    --danger: #f87171;
+    --danger-doux: rgb(248 113 113 / 0.1);
+    --succes: #4ade80;
+    --succes-doux: rgb(74 222 128 / 0.1);
+    --alerte: #facc15;
+    --alerte-doux: rgb(250 204 21 / 0.1);
+
+    --serie-1: #2dd4bf;
+    --serie-2: #818cf8;
+    --serie-3: #fbbf24;
+    --serie-4: #fb7185;
+    --serie-5: #38bdf8;
+    --serie-6: #64748b;
+
+    --ombre-carte: 0 1px 0 rgb(255 255 255 / 0.03) inset, 0 8px 24px -10px rgb(0 0 0 / 0.6);
+    --ombre-haute: 0 1px 0 rgb(255 255 255 / 0.05) inset, 0 20px 44px -12px rgb(0 0 0 / 0.7);
+    --halo-1: rgb(45 212 191 / 0.08);
+    --halo-2: rgb(129 140 248 / 0.07);
+  }
+}
+
+@theme {
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --color-fond: var(--fond);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-bordure: var(--bordure);
+  --color-bordure-forte: var(--bordure-forte);
+  --color-texte: var(--texte);
+  --color-texte-discret: var(--texte-discret);
+  --color-primaire-50: var(--primaire-50);
+  --color-primaire-100: var(--primaire-100);
+  --color-primaire-500: var(--primaire-500);
+  --color-primaire-600: var(--primaire-600);
+  --color-primaire-700: var(--primaire-700);
+  --color-primaire-plein: var(--primaire-plein);
+  --color-sur-primaire: var(--sur-primaire);
+  --color-danger: var(--danger);
+  --color-danger-doux: var(--danger-doux);
+  --color-succes: var(--succes);
+  --color-succes-doux: var(--succes-doux);
+  --color-alerte: var(--alerte);
+  --color-alerte-doux: var(--alerte-doux);
+
+  --shadow-carte: var(--ombre-carte);
+  --shadow-haute: var(--ombre-haute);
+
+  --ease-ressort: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* --- Base -------------------------------------------------------------------- */
+
 @layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
   body {
-    @apply bg-fond text-texte antialiased;
+    @apply min-h-dvh bg-fond text-[0.9375rem] text-texte antialiased;
+    font-feature-settings: "cv11", "ss03";
+  }
+  /* Deux halos colorés très doux en fond de page, fixes au défilement. */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      radial-gradient(48rem 28rem at 10% -10%, var(--halo-1), transparent 70%),
+      radial-gradient(40rem 24rem at 95% 0%, var(--halo-2), transparent 70%);
+  }
+  ::selection {
+    background: var(--primaire-100);
   }
   h1 {
-    @apply text-2xl font-semibold tracking-tight;
+    @apply text-[1.625rem] leading-tight font-semibold tracking-tight sm:text-[1.875rem];
   }
   h2 {
-    @apply text-lg font-semibold;
+    @apply text-base font-semibold tracking-tight;
   }
   a {
-    @apply text-primaire-600 underline-offset-2 hover:underline;
+    @apply text-primaire-600 underline-offset-4 transition-colors hover:underline;
   }
   input[type="text"],
   input[type="email"],
@@ -39,88 +166,431 @@
   input[type="search"],
   select,
   textarea {
-    @apply block w-full rounded-md border border-bordure bg-surface px-3 py-2 text-base
-      focus:border-primaire-600 focus:outline-2 focus:outline-primaire-600;
+    @apply block w-full rounded-xl border border-bordure-forte bg-surface px-3.5 py-2.5 text-[0.9375rem]
+      text-texte shadow-[0_1px_2px_rgb(15_23_42/0.04)] transition-[border-color,box-shadow]
+      duration-200 placeholder:text-texte-discret/70
+      focus:border-primaire-500 focus:outline-none focus:ring-4 focus:ring-primaire-500/15;
   }
   input[type="file"] {
-    @apply block w-full text-sm file:mr-3 file:cursor-pointer file:rounded-md file:border
-      file:border-bordure file:bg-surface file:px-3 file:py-2 file:text-sm file:font-medium;
+    @apply block w-full text-sm text-texte-discret file:mr-3 file:cursor-pointer file:rounded-lg
+      file:border file:border-bordure-forte file:bg-surface-2 file:px-3 file:py-2 file:text-sm
+      file:font-medium file:text-texte file:transition-colors hover:file:bg-primaire-50;
+  }
+  input[type="checkbox"],
+  input[type="radio"] {
+    @apply size-4 accent-primaire-plein;
   }
   :focus-visible {
-    @apply outline-2 outline-offset-2 outline-primaire-600;
+    @apply outline-2 outline-offset-2 outline-primaire-500;
   }
 }
 
-/* Briques de base : déclarées en @utility pour pouvoir être reprises par @apply. */
+/* --- Briques réutilisables par @apply ------------------------------------- */
+
 @utility bouton {
-  @apply inline-flex cursor-pointer items-center justify-center rounded-md border border-transparent
-    px-4 py-2 text-sm font-medium no-underline hover:no-underline;
+  @apply inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-xl border border-transparent
+    px-4 text-sm font-medium whitespace-nowrap no-underline transition-[background-color,color,box-shadow,transform,filter]
+    duration-200 ease-ressort select-none hover:no-underline active:scale-[0.97]
+    disabled:pointer-events-none disabled:opacity-50;
+}
+@utility pastille {
+  @apply inline-flex items-center gap-1 rounded-full bg-primaire-50 px-2 py-0.5 align-middle text-xs font-medium
+    text-primaire-600 ring-1 ring-primaire-500/20 ring-inset;
 }
 @utility message {
-  @apply rounded-md border px-4 py-3 text-sm;
+  @apply flex items-start gap-3 rounded-xl border px-4 py-3 text-sm;
 }
 
 @layer components {
+  /* Boutons */
   .bouton-primaire {
-    @apply bouton bg-primaire-600 text-white hover:bg-primaire-700;
+    @apply bouton bg-primaire-plein text-sur-primaire shadow-[inset_0_1px_0_rgb(255_255_255/0.18),0_8px_20px_-8px_var(--primaire-500)]
+      hover:brightness-110;
   }
   .bouton-secondaire {
-    @apply bouton border-bordure bg-surface text-texte hover:bg-primaire-50;
+    @apply bouton border-bordure-forte bg-surface text-texte shadow-[0_1px_2px_rgb(15_23_42/0.05)] hover:bg-surface-2;
   }
   .bouton-danger {
-    @apply bouton border-bordure bg-surface text-danger hover:bg-red-50;
+    @apply bouton border-bordure-forte bg-surface text-danger hover:bg-danger-doux;
   }
+  .bouton-discret {
+    @apply bouton h-9 px-3 text-texte-discret hover:bg-surface-2 hover:text-texte;
+  }
+  .bouton-icone {
+    @apply w-10 px-0;
+  }
+
+  /* Cartes */
   .carte {
-    @apply rounded-lg border border-bordure bg-surface p-5;
+    @apply rounded-2xl border border-bordure bg-surface p-5 shadow-carte;
   }
+  .carte-survol {
+    @apply transition-[transform,box-shadow] duration-300 ease-ressort hover:-translate-y-0.5 hover:shadow-haute;
+  }
+  /* Carte d'honneur en dégradé, avec deux taches de lumière qui dérivent lentement. */
+  .carte-vedette {
+    @apply relative isolate overflow-hidden rounded-3xl p-6 text-white shadow-haute sm:p-8;
+    background: linear-gradient(135deg, #0f766e 0%, #0e7490 45%, #4338ca 100%);
+  }
+  .carte-vedette::before,
+  .carte-vedette::after {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    border-radius: 9999px;
+    filter: blur(40px);
+    animation: deriver 14s ease-in-out infinite alternate;
+  }
+  .carte-vedette::before {
+    width: 22rem;
+    height: 22rem;
+    top: -10rem;
+    right: -6rem;
+    background: rgb(94 234 212 / 0.45);
+  }
+  .carte-vedette::after {
+    width: 18rem;
+    height: 18rem;
+    bottom: -10rem;
+    left: 10%;
+    background: rgb(165 180 252 / 0.4);
+    animation-duration: 18s;
+    animation-direction: alternate-reverse;
+  }
+  .carte-vedette a {
+    @apply text-white;
+  }
+
+  /* Titre de page : intitulé + actions */
+  .en-tete {
+    @apply flex flex-wrap items-end justify-between gap-x-4 gap-y-3;
+  }
+  .surtitre {
+    @apply mb-1 text-xs font-semibold tracking-[0.08em] text-primaire-600 uppercase;
+  }
+
+  /* Tableaux */
   .tableau {
     @apply w-full text-left text-sm;
   }
   .tableau th {
-    @apply border-b border-bordure px-4 py-2.5 font-medium text-texte-discret;
+    @apply border-b border-bordure bg-surface-2/60 px-4 py-2.5 text-xs font-medium tracking-wide text-texte-discret;
+  }
+  .tableau tbody th {
+    @apply bg-transparent text-sm tracking-normal;
   }
   .tableau td {
-    @apply border-b border-bordure px-4 py-2.5 align-top;
+    @apply border-b border-bordure px-4 py-3 align-middle;
+  }
+  .tableau tbody tr {
+    @apply transition-colors duration-150 hover:bg-surface-2/70;
+  }
+  .tableau tbody tr:last-child > * {
+    @apply border-b-0;
   }
   .tableau tfoot th,
   .tableau tfoot td {
-    @apply border-b-0 text-texte;
+    @apply border-t border-b-0 border-bordure bg-surface-2/60 py-3 text-sm font-semibold text-texte;
   }
   .montant {
     @apply text-right whitespace-nowrap tabular-nums;
   }
-  .jauge {
-    @apply ml-auto mt-1 block h-1.5 w-24 accent-primaire-600;
+
+  /* Listes en lignes */
+  .liste {
+    @apply divide-y divide-bordure;
   }
-  .jauge-depassee {
-    @apply accent-danger;
+  .ligne {
+    @apply flex items-center justify-between gap-3 py-3;
   }
+  /* Pastille ronde colorée devant une ligne (opération, facture…) */
+  .vignette {
+    @apply grid size-9 shrink-0 place-items-center rounded-xl bg-surface-2 text-texte-discret;
+  }
+  .vignette-entree {
+    @apply bg-succes-doux text-succes;
+  }
+  .vignette-sortie {
+    @apply bg-danger-doux text-danger;
+  }
+  .vignette-alerte {
+    @apply bg-alerte-doux text-alerte;
+  }
+
+  /* Chiffres clés */
   .indicateur {
-    @apply mt-1 text-2xl font-semibold tabular-nums;
+    @apply mt-1 text-xl leading-tight font-semibold tracking-tight tabular-nums sm:text-[1.75rem];
   }
+  .libelle-indicateur {
+    @apply text-sm font-medium text-texte-discret;
+  }
+
+  /* Jauge de budget : la barre se remplit à l'affichage. */
+  .jauge {
+    @apply mt-2 block h-1.5 w-full overflow-hidden rounded-full bg-surface-2 ring-1 ring-bordure ring-inset;
+  }
+  .jauge > span {
+    @apply block h-full rounded-full;
+    width: var(--part, 0%);
+    background: linear-gradient(90deg, var(--primaire-500), var(--primaire-plein));
+    animation: remplir 0.9s var(--ease-ressort) both;
+  }
+  .jauge-depassee > span {
+    background: linear-gradient(90deg, #fb923c, var(--danger));
+  }
+  .carte-vedette .jauge {
+    @apply bg-white/15 ring-white/10;
+  }
+  .carte-vedette .jauge > span {
+    background: linear-gradient(90deg, #99f6e4, #ffffff);
+  }
+
+  /* Anneau de répartition (conic-gradient), dessiné par balayage. */
+  .anneau {
+    @apply relative aspect-square w-full max-w-44 shrink-0 rounded-full;
+    -webkit-mask:
+      radial-gradient(farthest-side, transparent 64%, #000 65%),
+      conic-gradient(#000 var(--balayage), transparent 0);
+    -webkit-mask-composite: source-in;
+    mask:
+      radial-gradient(farthest-side, transparent 64%, #000 65%),
+      conic-gradient(#000 var(--balayage), transparent 0);
+    mask-composite: intersect;
+    animation: balayer 1.2s var(--ease-ressort) both;
+  }
+  .puce-serie {
+    @apply inline-block size-2.5 shrink-0 rounded-full;
+  }
+
+  /* Formulaires */
   .etiquette {
-    @apply mb-1 block text-sm font-medium;
+    @apply mb-1.5 block text-sm font-medium;
   }
   .aide {
-    @apply mt-1 text-sm text-texte-discret;
+    @apply mt-1.5 text-sm text-texte-discret;
   }
   .erreur {
-    @apply mt-1 text-sm text-danger;
+    @apply mt-1.5 text-sm font-medium text-danger;
   }
-  .pastille {
-    @apply inline-block rounded-full bg-primaire-100 px-2 py-0.5 text-xs font-medium text-primaire-700;
-  }
+
+  /* Pastilles */
   .pastille-alerte {
-    @apply inline-block rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900;
+    @apply pastille bg-alerte-doux text-alerte ring-alerte/25;
   }
+  .pastille-danger {
+    @apply pastille bg-danger-doux text-danger ring-danger/25;
+  }
+  .pastille-neutre {
+    @apply pastille bg-surface-2 text-texte-discret ring-bordure-forte;
+  }
+
+  /* Messages dans la page */
   .message-success {
-    @apply message border-green-200 bg-green-50 text-succes;
+    @apply message border-succes/25 bg-succes-doux text-succes;
   }
   .message-error {
-    @apply message border-red-200 bg-red-50 text-danger;
+    @apply message border-danger/25 bg-danger-doux text-danger;
   }
   .message-info,
   .message-warning {
     @apply message border-bordure bg-surface;
+  }
+
+  /* Notifications flottantes (messages Django) */
+  .notifications {
+    @apply pointer-events-none fixed inset-x-4 top-4 z-50 flex flex-col items-end gap-2 sm:left-auto sm:w-96;
+  }
+  .toast {
+    @apply pointer-events-auto flex w-full items-start gap-3 rounded-2xl border border-bordure bg-surface/90 px-4 py-3 text-sm
+      shadow-haute backdrop-blur-xl;
+    animation: entrer-toast 0.45s var(--ease-ressort) both;
+  }
+  .toast-success,
+  .toast-info {
+    animation:
+      entrer-toast 0.45s var(--ease-ressort) both,
+      sortir-toast 0.4s ease-in 6s forwards;
+  }
+
+  /* --- Coquille de l'application ------------------------------------------ */
+
+  .barre-laterale {
+    @apply sticky top-0 hidden h-dvh flex-col gap-6 border-r border-bordure bg-surface/60 px-4 py-6 backdrop-blur-xl lg:flex;
+    view-transition-name: barre-laterale;
+  }
+  .logo {
+    @apply flex items-center gap-2.5 px-2 text-[1.05rem] font-semibold tracking-tight text-texte no-underline hover:no-underline;
+  }
+  .logo-marque {
+    @apply grid size-9 place-items-center rounded-xl text-white shadow-[0_6px_16px_-6px_rgb(13_148_136/0.8)];
+    background: linear-gradient(135deg, #14b8a6, #0e7490 55%, #4f46e5);
+  }
+  .lien-nav {
+    @apply relative flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-texte-discret no-underline
+      transition-colors duration-200 hover:bg-surface-2 hover:text-texte hover:no-underline;
+  }
+  .lien-nav[aria-current="page"] {
+    @apply bg-primaire-50 text-primaire-600;
+  }
+  .lien-nav[aria-current="page"]::before {
+    content: "";
+    @apply absolute top-2 bottom-2 -left-4 w-1 rounded-r-full bg-primaire-500;
+  }
+
+  /* Sélecteur de foyer (menu déroulant sans JavaScript) */
+  .menu {
+    @apply relative;
+  }
+  .menu > summary {
+    @apply cursor-pointer list-none;
+  }
+  .menu > summary::-webkit-details-marker {
+    display: none;
+  }
+  .menu-panneau {
+    @apply absolute z-30 mt-2 w-72 space-y-1 rounded-2xl border border-bordure bg-surface/95 p-2 shadow-haute backdrop-blur-xl;
+    animation: ouvrir-menu 0.2s var(--ease-ressort) both;
+    transform-origin: top;
+  }
+  .element-menu {
+    @apply flex w-full cursor-pointer items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-sm text-texte
+      no-underline transition-colors hover:bg-surface-2 hover:no-underline;
+  }
+
+  /* Téléphone : barre du haut et onglets du bas */
+  .barre-mobile {
+    @apply sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-bordure bg-surface/75 px-4 py-3
+      backdrop-blur-xl lg:hidden;
+    view-transition-name: barre-mobile;
+  }
+  .onglets {
+    @apply fixed inset-x-0 bottom-0 z-20 grid grid-cols-5 border-t border-bordure bg-surface/85 px-2 pt-1.5
+      backdrop-blur-xl lg:hidden;
+    padding-bottom: max(0.375rem, env(safe-area-inset-bottom));
+    view-transition-name: onglets;
+  }
+  .onglet {
+    @apply flex flex-col items-center gap-0.5 rounded-xl py-1.5 text-[0.6875rem] font-medium text-texte-discret no-underline
+      transition-colors hover:no-underline;
+  }
+  .onglet[aria-current="page"] {
+    @apply text-primaire-600;
+  }
+  .onglet[aria-current="page"] svg {
+    @apply scale-110;
+  }
+  .onglet svg {
+    @apply transition-transform duration-300 ease-ressort;
+  }
+
+  /* Page de connexion et assimilées */
+  .scene {
+    @apply relative isolate grid min-h-dvh place-items-center overflow-hidden px-4 py-10;
+  }
+  .scene-tache {
+    @apply absolute -z-10 rounded-full blur-3xl;
+    animation: deriver 16s ease-in-out infinite alternate;
+  }
+
+  /* Entrée en cascade des blocs d'une page */
+  .cascade > * {
+    animation: apparaitre 0.55s var(--ease-ressort) both;
+    animation-delay: calc(var(--rang, 0) * 55ms);
+  }
+  .cascade > :nth-child(2) { --rang: 1; }
+  .cascade > :nth-child(3) { --rang: 2; }
+  .cascade > :nth-child(4) { --rang: 3; }
+  .cascade > :nth-child(5) { --rang: 4; }
+  .cascade > :nth-child(6) { --rang: 5; }
+  .cascade > :nth-child(7) { --rang: 6; }
+  .cascade > :nth-child(n + 8) { --rang: 7; }
+}
+
+/* --- Mouvement ---------------------------------------------------------------- */
+
+@property --balayage {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 360deg;
+}
+
+@keyframes apparaitre {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+@keyframes remplir {
+  from {
+    width: 0;
+  }
+}
+@keyframes balayer {
+  from {
+    --balayage: 0deg;
+  }
+}
+@keyframes deriver {
+  to {
+    transform: translate(12%, 10%) scale(1.15);
+  }
+}
+@keyframes entrer-toast {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.97);
+  }
+}
+@keyframes sortir-toast {
+  to {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+    visibility: hidden;
+  }
+}
+@keyframes ouvrir-menu {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.97);
+  }
+}
+@keyframes fondu-sortie {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes fondu-entree {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Transitions entre pages (navigateurs récents) : la navigation reste en place,
+   seul le contenu se fond. Les autres navigateurs changent de page normalement. */
+@view-transition {
+  navigation: auto;
+}
+::view-transition-old(contenu) {
+  animation: fondu-sortie 0.15s ease-in both;
+}
+::view-transition-new(contenu) {
+  animation: fondu-entree 0.25s ease-out both;
+}
+::view-transition-group(root) {
+  animation-duration: 0.2s;
+}
+
+/* Réglage système « réduire les animations » : tout devient instantané. */
+@media (prefers-reduced-motion: reduce) {
+  @view-transition {
+    navigation: none;
+  }
+  /* Aucune animation : chaque élément s'affiche directement dans son état final
+     (jauges pleines, anneau complet). Les notifications sont retirées par app.js. */
+  *,
+  ::before,
+  ::after {
+    animation: none !important;
+    transition: none !important;
   }
 }

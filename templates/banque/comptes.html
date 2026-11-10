@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% load i18n formats %}
+{% load i18n formats icones %}
 {% block titre %}{% translate "Comptes" %}{% endblock %}
 {% block contenu %}
-<div class="flex flex-wrap items-center justify-between gap-3">
+<div class="en-tete">
   <h1>{% translate "Comptes" %}</h1>
-  {% if peut_modifier %}<a class="bouton-primaire" href="{% url 'banque:ajouter_compte' %}">{% translate "Ajouter un compte" %}</a>{% endif %}
+  {% if peut_modifier %}<a class="bouton-primaire" href="{% url 'banque:ajouter_compte' %}">{% icone "plus" classe="size-4" %}{% translate "Ajouter un compte" %}</a>{% endif %}
 </div>
 
 {% if comptes %}

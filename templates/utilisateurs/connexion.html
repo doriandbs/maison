@@ -2,16 +2,17 @@
 {% load i18n %}
 {% block titre %}{% translate "Connexion" %}{% endblock %}
 {% block carte %}
-<h1>{% translate "Connexion" %}</h1>
+<div class="space-y-1.5">
+  <h1>{% translate "Connexion" %}</h1>
+  <p class="text-texte-discret">{% translate "Retrouvez vos comptes, votre budget et vos documents." %}</p>
+</div>
 <form method="post" class="space-y-4">
   {% include "composants/formulaire.html" with formulaire=form %}
   <input type="hidden" name="next" value="{{ next }}">
   <button class="bouton-primaire w-full">{% translate "Se connecter" %}</button>
 </form>
-<p class="text-sm">
+<div class="flex flex-wrap items-center justify-between gap-2 border-t border-bordure pt-4 text-sm">
   <a href="{% url 'utilisateurs:mot_de_passe_oublie' %}">{% translate "Mot de passe oublié ?" %}</a>
-  {% if inscription_ouverte %}
-    · <a href="{% url 'utilisateurs:inscription' %}">{% translate "Créer un compte" %}</a>
-  {% endif %}
-</p>
+  {% if inscription_ouverte %}<a class="font-medium" href="{% url 'utilisateurs:inscription' %}">{% translate "Créer un compte" %}</a>{% endif %}
+</div>
 {% endblock %}

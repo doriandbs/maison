@@ -1,128 +1,198 @@
 {% extends "base.html" %}
-{% load i18n formats %}
+{% load i18n formats icones %}
 {% block titre %}{% translate "Accueil" %}{% endblock %}
 {% block contenu %}
-<div class="flex flex-wrap items-baseline justify-between gap-3">
-  <h1>{{ adhesion_courante.foyer.nom }}</h1>
-  <p class="text-sm text-texte-discret">{{ synthese.aujourd_hui|date:"l j F Y" }}</p>
+<div class="en-tete">
+  <div>
+    <p class="surtitre">{{ synthese.aujourd_hui|date:"l j F Y" }}</p>
+    <h1>{{ adhesion_courante.foyer.nom }}</h1>
+  </div>
+  {% if peut_modifier and synthese.comptes %}
+  <div class="flex flex-wrap gap-2">
+    <a class="bouton-secondaire" href="{% url 'documents:ajouter' %}">{% icone "documents" classe="size-4" %}{% translate "Déposer un document" %}</a>
+    <a class="bouton-primaire" href="{% url 'banque:ajouter_operation' %}">{% icone "plus" classe="size-4" %}{% translate "Opération" %}</a>
+  </div>
+  {% endif %}
 </div>
 
 {% if not synthese.comptes %}
-<div class="carte space-y-3">
-  <p>{% translate "Commencez par ajouter vos comptes : soldes, budget et récapitulatifs se rempliront à partir de vos opérations." %}</p>
-  {% if peut_modifier %}<a class="bouton-primaire" href="{% url 'banque:ajouter_compte' %}">{% translate "Ajouter un compte" %}</a>{% endif %}
+<div class="carte grid place-items-center gap-4 px-6 py-14 text-center">
+  <span class="logo-marque size-14 rounded-2xl">{% icone "comptes" classe="size-7" %}</span>
+  <div class="max-w-md space-y-2">
+    <h2 class="text-lg">{% translate "Bienvenue dans votre foyer" %}</h2>
+    <p class="text-texte-discret">{% translate "Commencez par ajouter vos comptes : soldes, budget et récapitulatifs se rempliront à partir de vos opérations." %}</p>
+  </div>
+  {% if peut_modifier %}<a class="bouton-primaire" href="{% url 'banque:ajouter_compte' %}">{% icone "plus" classe="size-4" %}{% translate "Ajouter un compte" %}</a>{% endif %}
 </div>
 {% else %}
 
-<section class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label="{% translate 'Chiffres clés' %}">
-  <div class="carte">
-    <p class="text-sm text-texte-discret">{% translate "Disponible" %}</p>
-    <p class="indicateur">{{ synthese.disponible|euros }}</p>
-    <p class="aide">{% translate "comptes courants" %}</p>
+<section class="carte-vedette" aria-label="{% translate 'Patrimoine' %}">
+  <div class="grid gap-8 md:grid-cols-[1.4fr_1fr] md:items-end">
+    <div>
+      <p class="text-sm font-medium text-white/75">{% translate "Patrimoine" %}</p>
+      <p class="mt-1 text-4xl font-semibold tracking-tight tabular-nums sm:text-5xl" data-compteur="{{ synthese.patrimoine|valeur_brute }}">{{ synthese.patrimoine|euros }}</p>
+      <dl class="mt-5 flex flex-wrap gap-x-8 gap-y-3 text-sm">
+        <div><dt class="text-white/70">{% translate "Disponible" %}</dt><dd class="text-lg font-semibold tabular-nums">{{ synthese.disponible|euros }}</dd></div>
+        <div><dt class="text-white/70">{% translate "Épargne et placements" %}</dt><dd class="text-lg font-semibold tabular-nums">{{ synthese.epargne|euros }}</dd></div>
+      </dl>
+    </div>
+    <div class="rounded-2xl bg-white/10 p-4 ring-1 ring-white/15 backdrop-blur-sm">
+      <p class="text-sm font-medium text-white/80">{{ synthese.mois.mois|date:"F"|capfirst }}</p>
+      <dl class="mt-2 space-y-1.5 text-sm">
+        <div class="flex items-center justify-between gap-3"><dt class="flex items-center gap-2 text-white/75">{% icone "hausse" classe="size-4" %}{% translate "Revenus" %}</dt><dd class="font-semibold tabular-nums">{{ synthese.mois.flux.revenus|euros }}</dd></div>
+        <div class="flex items-center justify-between gap-3"><dt class="flex items-center gap-2 text-white/75">{% icone "baisse" classe="size-4" %}{% translate "Dépenses" %}</dt><dd class="font-semibold tabular-nums">{{ synthese.mois.flux.depenses|euros }}</dd></div>
+      </dl>
+      {% if synthese.budget_restant is not None %}
+      <span class="jauge mt-3" aria-hidden="true"><span style="--part: {{ synthese.mois.flux.depenses|part_de:synthese.mois.budget_total }}"></span></span>
+      <p class="mt-1.5 text-xs text-white/70">{% blocktranslate with total=synthese.mois.budget_total|euros %}sur un budget de {{ total }}{% endblocktranslate %}</p>
+      {% endif %}
+    </div>
   </div>
-  <div class="carte">
-    <p class="text-sm text-texte-discret">{% translate "Épargne et placements" %}</p>
-    <p class="indicateur">{{ synthese.epargne|euros }}</p>
-  </div>
-  <div class="carte">
-    <p class="text-sm text-texte-discret">{% blocktranslate with mois=synthese.mois.mois|date:"F" %}Dépenses de {{ mois }}{% endblocktranslate %}</p>
-    <p class="indicateur">{{ synthese.mois.flux.depenses|euros }}</p>
+</section>
+
+<section class="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4" aria-label="{% translate 'Chiffres clés' %}">
+  <div class="carte carte-survol">
+    <p class="libelle-indicateur">{% blocktranslate with mois=synthese.mois.mois|date:"F" %}Dépenses de {{ mois }}{% endblocktranslate %}</p>
+    <p class="indicateur" data-compteur="{{ synthese.mois.flux.depenses|valeur_brute }}">{{ synthese.mois.flux.depenses|euros }}</p>
     <p class="aide">{% blocktranslate with revenus=synthese.mois.flux.revenus|euros %}revenus : {{ revenus }}{% endblocktranslate %}</p>
   </div>
-  <div class="carte">
-    <p class="text-sm text-texte-discret">{% translate "Budget restant ce mois" %}</p>
+  <div class="carte carte-survol">
+    <p class="libelle-indicateur">{% translate "Budget restant ce mois" %}</p>
     {% if synthese.budget_restant is None %}
       <p class="indicateur text-texte-discret">–</p>
       <p class="aide"><a href="{% url 'budget:courant' %}">{% translate "Définir un budget" %}</a></p>
     {% else %}
-      <p class="indicateur {% if synthese.budget_restant < 0 %}text-danger{% endif %}">{{ synthese.budget_restant|euros }}</p>
+      <p class="indicateur {% if synthese.budget_restant < 0 %}text-danger{% endif %}" data-compteur="{{ synthese.budget_restant|valeur_brute }}">{{ synthese.budget_restant|euros }}</p>
+      <span class="jauge {% if synthese.budget_restant < 0 %}jauge-depassee{% endif %}" aria-hidden="true"><span style="--part: {{ synthese.mois.flux.depenses|part_de:synthese.mois.budget_total }}"></span></span>
       <p class="aide">{% blocktranslate with total=synthese.mois.budget_total|euros %}sur {{ total }} prévus{% endblocktranslate %}</p>
     {% endif %}
   </div>
+  <div class="carte carte-survol">
+    <p class="libelle-indicateur">{% translate "Taux d'épargne" %}</p>
+    <p class="indicateur">{{ synthese.mois.flux.taux_epargne|pourcent }}</p>
+    <p class="aide">{% blocktranslate with montant=synthese.mois.flux.epargne|euros %}{{ montant }} mis de côté{% endblocktranslate %}</p>
+  </div>
+  <a class="carte carte-survol block text-texte no-underline hover:no-underline" href="{% url 'documents:liste' %}?a_payer=on">
+    <p class="libelle-indicateur">{% translate "Factures à payer" %}</p>
+    <p class="indicateur {% if synthese.nombre_factures %}text-alerte{% endif %}">{{ synthese.nombre_factures }}</p>
+    <p class="aide">{% if synthese.nombre_factures %}{% blocktranslate with total=synthese.montant_factures|euros %}{{ total }} au total{% endblocktranslate %}{% else %}{% translate "tout est réglé" %}{% endif %}</p>
+  </a>
 </section>
 
-<div class="grid gap-6 md:grid-cols-2">
+{% if synthese.alertes %}
+<section class="message-error items-center" role="status">
+  {% icone "alerte" classe="size-5 shrink-0" %}
+  <p class="flex-1"><strong>{% translate "Budget dépassé :" %}</strong>
+    {% for ligne in synthese.alertes %}{{ ligne.categorie }} ({% blocktranslate with ecart=ligne.montant_depasse|euros %}+{{ ecart }}{% endblocktranslate %}){% if not forloop.last %}, {% endif %}{% endfor %}
+  </p>
+  <a class="shrink-0 font-medium text-danger" href="{% url 'budget:courant' %}">{% translate "Voir" %}</a>
+</section>
+{% endif %}
+
+<div class="grid gap-6 lg:grid-cols-2">
+  <section class="carte space-y-5" aria-labelledby="titre-repartition">
+    <div class="flex items-baseline justify-between gap-3">
+      <h2 id="titre-repartition">{% translate "Où va l'argent ce mois-ci" %}</h2>
+      <a class="text-sm" href="{% url 'budget:courant' %}">{% translate "Détail" %}</a>
+    </div>
+    {% if synthese.repartition %}
+    <div class="flex flex-col items-center gap-6 sm:flex-row">
+      <div class="relative w-44">
+        <div class="anneau" style="background: {{ synthese.degrade_repartition }}" aria-hidden="true"></div>
+        <div class="absolute inset-0 grid place-items-center text-center">
+          <div>
+            <p class="text-xs text-texte-discret">{% translate "Dépensé" %}</p>
+            <p class="font-semibold tabular-nums">{{ synthese.mois.flux.depenses|euros }}</p>
+          </div>
+        </div>
+      </div>
+      <ul class="w-full flex-1 space-y-2.5 text-sm">
+        {% for part in synthese.repartition %}
+        <li class="flex items-center gap-3">
+          <span class="puce-serie" style="background: var(--serie-{{ part.serie }})" aria-hidden="true"></span>
+          <span class="flex-1 truncate">{{ part.libelle }}</span>
+          <span class="text-texte-discret tabular-nums">{{ part.pourcentage|floatformat:0 }} %</span>
+          <span class="w-24 text-right font-medium tabular-nums">{{ part.montant|euros }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% else %}
+    <p class="text-sm text-texte-discret">{% translate "Aucune dépense ce mois-ci." %}</p>
+    {% endif %}
+  </section>
+
   <section class="carte space-y-3" aria-labelledby="titre-factures">
     <div class="flex items-baseline justify-between gap-3">
       <h2 id="titre-factures">{% translate "Factures à payer" %}</h2>
       {% if synthese.nombre_factures %}<a class="text-sm" href="{% url 'documents:liste' %}?a_payer=on">{% blocktranslate count n=synthese.nombre_factures %}{{ n }} facture{% plural %}Les {{ n }} factures{% endblocktranslate %}</a>{% endif %}
     </div>
     {% if synthese.factures %}
-    <ul class="divide-y divide-bordure text-sm">
+    <ul class="liste">
       {% for facture in synthese.factures %}
-      <li class="flex items-center justify-between gap-3 py-2">
-        <span>
-          <a href="{% url 'documents:document' facture.document.pk %}">{{ facture.document.titre }}</a>
+      <li class="ligne">
+        <span class="vignette {% if facture.en_retard %}vignette-sortie{% else %}vignette-alerte{% endif %}">{% icone "documents" classe="size-4" %}</span>
+        <span class="min-w-0 flex-1">
+          <a class="block truncate font-medium text-texte" href="{% url 'documents:document' facture.document.pk %}">{{ facture.document.titre }}</a>
           {% if facture.document.echeance %}
-          <span class="block {% if facture.en_retard %}text-danger{% else %}text-texte-discret{% endif %}">
-            {% if facture.en_retard %}{% translate "en retard" %} – {% endif %}{% blocktranslate with date=facture.document.echeance|date:"j M" %}échéance le {{ date }}{% endblocktranslate %}
+          <span class="block text-xs {% if facture.en_retard %}font-medium text-danger{% else %}text-texte-discret{% endif %}">
+            {% if facture.en_retard %}{% translate "en retard" %} · {% endif %}{% blocktranslate with date=facture.document.echeance|date:"j M" %}échéance le {{ date }}{% endblocktranslate %}
           </span>
           {% endif %}
         </span>
-        <span class="montant">{{ facture.document.montant|euros }}</span>
+        <span class="montant font-medium">{{ facture.document.montant|euros }}</span>
       </li>
       {% endfor %}
     </ul>
-    <p class="text-right text-sm">{% translate "Total" %} : <strong class="tabular-nums">{{ synthese.montant_factures|euros }}</strong></p>
+    <p class="flex justify-between border-t border-bordure pt-3 text-sm"><span class="text-texte-discret">{% translate "Total" %}</span><strong class="tabular-nums">{{ synthese.montant_factures|euros }}</strong></p>
     {% else %}
-    <p class="text-sm text-texte-discret">{% translate "Aucune facture en attente." %}</p>
+    <div class="flex items-center gap-3 py-4 text-sm text-texte-discret">
+      <span class="vignette vignette-entree">{% icone "valider" classe="size-4" %}</span>{% translate "Aucune facture en attente." %}
+    </div>
     {% endif %}
   </section>
 
-  <section class="carte space-y-3" aria-labelledby="titre-alertes">
-    <h2 id="titre-alertes">{% translate "Budget du mois" %}</h2>
-    {% if synthese.alertes %}
-    <ul class="divide-y divide-bordure text-sm">
-      {% for ligne in synthese.alertes %}
-      <li class="flex items-center justify-between gap-3 py-2">
-        <span>{{ ligne.categorie }}</span>
-        <span class="montant text-danger">{% blocktranslate with ecart=ligne.montant_depasse|euros %}dépassé de {{ ecart }}{% endblocktranslate %}</span>
+  <section class="carte space-y-2" aria-labelledby="titre-comptes">
+    <div class="flex items-baseline justify-between gap-3">
+      <h2 id="titre-comptes">{% translate "Comptes" %}</h2>
+      <a class="text-sm" href="{% url 'banque:comptes' %}">{% translate "Tous" %}</a>
+    </div>
+    <ul class="liste">
+      {% for ligne in synthese.comptes %}
+      <li>
+        <a class="ligne -mx-2 rounded-xl px-2 text-texte no-underline transition-colors hover:bg-surface-2 hover:no-underline" href="{% url 'banque:compte' ligne.compte.pk %}">
+          <span class="vignette text-sm font-semibold">{{ ligne.compte.nom|first|upper }}</span>
+          <span class="min-w-0 flex-1">
+            <span class="block truncate font-medium">{{ ligne.compte.nom }}</span>
+            <span class="block text-xs text-texte-discret">{{ ligne.compte.get_type_display }}</span>
+          </span>
+          <span class="montant font-semibold {% if ligne.solde < 0 %}text-danger{% endif %}">{{ ligne.solde|euros }}</span>
+        </a>
       </li>
       {% endfor %}
     </ul>
-    {% elif synthese.budget_restant is None %}
-    <p class="text-sm text-texte-discret">{% translate "Aucun budget défini pour ce mois." %}</p>
-    {% else %}
-    <p class="text-sm text-succes">{% translate "Aucun dépassement." %}</p>
-    {% endif %}
-    <p class="text-sm"><a href="{% url 'budget:courant' %}">{% translate "Voir le tableau du mois" %} →</a></p>
-  </section>
-</div>
-
-<div class="grid gap-6 md:grid-cols-2">
-  <section class="carte overflow-x-auto p-0" aria-labelledby="titre-comptes">
-    <h2 id="titre-comptes" class="px-4 pt-4">{% translate "Comptes" %}</h2>
-    <table class="tableau">
-      <tbody>
-        {% for ligne in synthese.comptes %}
-        <tr>
-          <td><a href="{% url 'banque:compte' ligne.compte.pk %}">{{ ligne.compte.nom }}</a></td>
-          <td class="montant {% if ligne.solde < 0 %}text-danger{% endif %}">{{ ligne.solde|euros }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
   </section>
 
-  <section class="carte overflow-x-auto p-0" aria-labelledby="titre-operations">
-    <div class="flex items-baseline justify-between gap-3 px-4 pt-4">
+  <section class="carte space-y-2" aria-labelledby="titre-operations">
+    <div class="flex items-baseline justify-between gap-3">
       <h2 id="titre-operations">{% translate "Dernières opérations" %}</h2>
-      <a class="text-sm" href="{% url 'banque:operations' %}">{% translate "Toutes" %} →</a>
+      <a class="text-sm" href="{% url 'banque:operations' %}">{% translate "Toutes" %}</a>
     </div>
     {% if synthese.dernieres_operations %}
-    <table class="tableau">
-      <tbody>
-        {% for operation in synthese.dernieres_operations %}
-        <tr>
-          <td class="whitespace-nowrap text-texte-discret">{{ operation.date|date:"j M" }}</td>
-          <td>{{ operation.libelle }}</td>
-          <td class="montant {% if operation.montant < 0 %}text-danger{% else %}text-succes{% endif %}">{{ operation.montant|euros }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+    <ul class="liste">
+      {% for operation in synthese.dernieres_operations %}
+      <li class="ligne">
+        <span class="vignette {% if operation.montant < 0 %}vignette-sortie{% else %}vignette-entree{% endif %}">{% if operation.montant < 0 %}{% icone "baisse" classe="size-4" %}{% else %}{% icone "hausse" classe="size-4" %}{% endif %}</span>
+        <span class="min-w-0 flex-1">
+          <span class="block truncate font-medium">{{ operation.libelle }}</span>
+          <span class="block text-xs text-texte-discret">{{ operation.date|date:"j M" }} · {{ operation.compte.nom }}</span>
+        </span>
+        <span class="montant font-semibold {% if operation.montant > 0 %}text-succes{% endif %}">{{ operation.montant|euros }}</span>
+      </li>
+      {% endfor %}
+    </ul>
     {% else %}
-    <p class="px-4 pb-4 text-sm text-texte-discret">{% translate "Aucune opération pour l'instant." %}</p>
+    <p class="py-4 text-sm text-texte-discret">{% translate "Aucune opération pour l'instant." %}</p>
     {% endif %}
   </section>
 </div>

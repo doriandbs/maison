@@ -1,13 +1,13 @@
 {% extends "base.html" %}
-{% load i18n formats %}
+{% load i18n formats icones %}
 {% block titre %}{% translate "Opérations" %}{% endblock %}
 {% block contenu %}
-<div class="flex flex-wrap items-center justify-between gap-3">
+<div class="en-tete">
   <h1>{% translate "Opérations" %}</h1>
   {% if peut_modifier %}
   <span class="flex flex-wrap gap-2">
     <a class="bouton-secondaire" href="{% url 'banque:ajouter_virement' %}">{% translate "Virement interne" %}</a>
-    <a class="bouton-primaire" href="{% url 'banque:ajouter_operation' %}">{% translate "Ajouter une opération" %}</a>
+    <a class="bouton-primaire" href="{% url 'banque:ajouter_operation' %}">{% icone "plus" classe="size-4" %}{% translate "Ajouter une opération" %}</a>
   </span>
   {% endif %}
 </div>
@@ -30,19 +30,23 @@
       {% for operation in operations %}
       <tr>
         <td class="whitespace-nowrap">{{ operation.date|date:"j M Y" }}</td>
-        <td>{{ operation.libelle }}{% for document in operation.documents.all %} <a href="{% url 'documents:document' document.pk %}" title="{{ document.titre }}" aria-label="{% blocktranslate with titre=document.titre %}Justificatif : {{ titre }}{% endblocktranslate %}">📎</a>{% endfor %}{% if operation.note %}<div class="text-sm text-texte-discret">{{ operation.note }}</div>{% endif %}</td>
+        <td>{{ operation.libelle }}{% for document in operation.documents.all %} <a href="{% url 'documents:document' document.pk %}" class="ml-1 inline-flex align-middle text-texte-discret hover:text-primaire-600" title="{{ document.titre }}" aria-label="{% blocktranslate with titre=document.titre %}Justificatif : {{ titre }}{% endblocktranslate %}">{% icone "trombone" classe="size-4" %}</a>{% endfor %}{% if operation.note %}<div class="text-sm text-texte-discret">{{ operation.note }}</div>{% endif %}</td>
         <td>{{ operation.compte.nom }}</td>
         <td>
           {% if operation.est_virement %}<span class="pastille">{% translate "virement" %}</span>
           {% elif operation.categorie %}{{ operation.categorie }}
           {% else %}<span class="text-texte-discret">{% translate "à classer" %}</span>{% endif %}
         </td>
-        <td class="montant {% if operation.montant < 0 %}text-danger{% else %}text-succes{% endif %}">{{ operation.montant|euros }}</td>
-        <td class="whitespace-nowrap text-right text-sm">
+        <td class="montant font-medium {% if operation.montant > 0 %}text-succes{% endif %}">{{ operation.montant|euros }}</td>
+        <td class="py-1.5 whitespace-nowrap text-right">
           {% if peut_modifier %}
-            {% if not operation.est_virement %}<a href="{% url 'banque:modifier_operation' operation.pk %}">{% translate "Modifier" %}</a> ·{% endif %}
-            {% if not operation.est_virement %}<a href="{% url 'documents:ajouter' %}?operation={{ operation.pk }}">{% translate "Justificatif" %}</a> ·{% endif %}
-            <a href="{% url 'banque:supprimer_operation' operation.pk %}">{% translate "Supprimer" %}</a>
+          <span class="inline-flex gap-0.5">
+            {% if not operation.est_virement %}
+            <a class="bouton-discret bouton-icone" href="{% url 'banque:modifier_operation' operation.pk %}" title="{% translate 'Modifier' %}" aria-label="{% blocktranslate with libelle=operation.libelle %}Modifier « {{ libelle }} »{% endblocktranslate %}">{% icone "modifier" classe="size-4" %}</a>
+            <a class="bouton-discret bouton-icone" href="{% url 'documents:ajouter' %}?operation={{ operation.pk }}" title="{% translate 'Ajouter un justificatif' %}" aria-label="{% blocktranslate with libelle=operation.libelle %}Ajouter un justificatif à « {{ libelle }} »{% endblocktranslate %}">{% icone "trombone" classe="size-4" %}</a>
+            {% endif %}
+            <a class="bouton-discret bouton-icone hover:text-danger" href="{% url 'banque:supprimer_operation' operation.pk %}" title="{% translate 'Supprimer' %}" aria-label="{% blocktranslate with libelle=operation.libelle %}Supprimer « {{ libelle }} »{% endblocktranslate %}">{% icone "supprimer" classe="size-4" %}</a>
+          </span>
           {% endif %}
         </td>
       </tr>

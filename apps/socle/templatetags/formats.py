@@ -35,3 +35,18 @@ def pourcent(valeur: Decimal | None) -> str:
 def nombre_brut(valeur: Decimal | int) -> str:
     """Nombre au format informatique (point décimal) pour un attribut HTML."""
     return f"{max(valeur, 0):.2f}"
+
+
+@register.filter
+def valeur_brute(valeur: Decimal | int | None) -> str:
+    """Comme `nombre_brut` mais signé : valeur d'arrivée des compteurs animés."""
+    return f"{valeur or 0:.2f}"
+
+
+@register.filter
+def part_de(valeur: Decimal | int | None, total: Decimal | int | None) -> str:
+    """Part de `valeur` dans `total`, en pourcentage borné à 0–100, pour une jauge CSS."""
+    if not total or total <= 0 or not valeur:
+        return "0%"
+    part = min(max(Decimal(valeur) / Decimal(total) * 100, Decimal(0)), Decimal(100))
+    return f"{part:.1f}%"

@@ -3,8 +3,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
+from functools import cached_property
 
 from django.db.models import F
+from django.utils.translation import gettext as _
 
 from apps.banque.models import Compte, Operation
 from apps.banque.services.soldes import soldes_des_comptes
@@ -15,6 +17,46 @@ from apps.foyers.models import Foyer
 ZERO = Decimal("0.00")
 NOMBRE_FACTURES = 5
 NOMBRE_OPERATIONS = 5
+# Au-delà, les plus petites catégories sont regroupées : l'œil ne distingue pas plus de couleurs.
+NOMBRE_SERIES = 5
+
+
+@dataclass
+class PartDepense:
+    libelle: str
+    montant: Decimal
+    pourcentage: Decimal
+    debut: Decimal
+    serie: int
+
+    @property
+    def fin(self) -> Decimal:
+        return self.debut + self.pourcentage
+
+
+def repartition_depenses(mois: TableauMensuel) -> list[PartDepense]:
+    """Dépenses du mois par catégorie parente, de la plus grosse à la plus petite,
+    avec leur position cumulée (en %) pour dessiner un anneau."""
+    montants = [
+        (ligne.categorie.nom, ligne.realise) for ligne in mois.depenses if ligne.realise > 0
+    ]
+    montants.sort(key=lambda paire: paire[1], reverse=True)
+    if len(montants) > NOMBRE_SERIES:
+        reste = sum((montant for _, montant in montants[NOMBRE_SERIES - 1 :]), ZERO)
+        montants = [*montants[: NOMBRE_SERIES - 1], (_("Autres"), reste)]
+    if mois.depenses_non_classees > 0:
+        montants.append((_("À classer"), mois.depenses_non_classees))
+    total = sum((montant for _, montant in montants), ZERO)
+    if not total:
+        return []
+    parts, cumul = [], Decimal(0)
+    for rang, (libelle, montant) in enumerate(montants):
+        pourcentage = (montant / total * 100).quantize(Decimal("0.1"))
+        parts.append(PartDepense(libelle, montant, pourcentage, cumul, serie=min(rang, 5) + 1))
+        cumul += pourcentage
+    # Le dernier arc ferme le cercle malgré les arrondis.
+    parts[-1].pourcentage = Decimal(100) - parts[-1].debut
+    return parts
 
 
 @dataclass
@@ -56,8 +98,24 @@ class Synthese:
         return self.mois.budget_total - self.mois.flux.depenses
 
     @property
+    def patrimoine(self) -> Decimal:
+        return self.disponible + self.epargne
+
+    @property
     def alertes(self) -> list[LigneCategorie]:
         return self.mois.alertes
+
+    @cached_property
+    def repartition(self) -> list[PartDepense]:
+        return repartition_depenses(self.mois)
+
+    @property
+    def degrade_repartition(self) -> str:
+        """Valeur CSS `conic-gradient(...)` de l'anneau des dépenses."""
+        arcs = ", ".join(
+            f"var(--serie-{part.serie}) {part.debut}% {part.fin}%" for part in self.repartition
+        )
+        return f"conic-gradient({arcs})"
 
 
 def synthese(foyer: Foyer, aujourd_hui: date | None = None) -> Synthese:

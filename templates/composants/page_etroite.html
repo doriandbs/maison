@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% block contenu %}
-<div class="carte mx-auto max-w-md space-y-4">
-  {% block carte %}{% endblock %}
+<div class="mx-auto w-full max-w-md">
+  <div class="carte space-y-5 p-6 sm:p-8">
+    {% block carte %}{% endblock %}
+  </div>
 </div>
 {% endblock %}
