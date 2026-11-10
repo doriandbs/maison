@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% load i18n formats %}
+{% block titre %}{% translate "Accueil" %}{% endblock %}
+{% block contenu %}
+<div class="flex flex-wrap items-baseline justify-between gap-3">
+  <h1>{{ adhesion_courante.foyer.nom }}</h1>
+  <p class="text-sm text-texte-discret">{{ synthese.aujourd_hui|date:"l j F Y" }}</p>
+</div>
+
+{% if not synthese.comptes %}
+<div class="carte space-y-3">
+  <p>{% translate "Commencez par ajouter vos comptes : soldes, budget et récapitulatifs se rempliront à partir de vos opérations." %}</p>
+  {% if peut_modifier %}<a class="bouton-primaire" href="{% url 'banque:ajouter_compte' %}">{% translate "Ajouter un compte" %}</a>{% endif %}
+</div>
+{% else %}
+
+<section class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label="{% translate 'Chiffres clés' %}">
+  <div class="carte">
+    <p class="text-sm text-texte-discret">{% translate "Disponible" %}</p>
+    <p class="indicateur">{{ synthese.disponible|euros }}</p>
+    <p class="aide">{% translate "comptes courants" %}</p>
+  </div>
+  <div class="carte">
+    <p class="text-sm text-texte-discret">{% translate "Épargne et placements" %}</p>
+    <p class="indicateur">{{ synthese.epargne|euros }}</p>
+  </div>
+  <div class="carte">
+    <p class="text-sm text-texte-discret">{% blocktranslate with mois=synthese.mois.mois|date:"F" %}Dépenses de {{ mois }}{% endblocktranslate %}</p>
+    <p class="indicateur">{{ synthese.mois.flux.depenses|euros }}</p>
+    <p class="aide">{% blocktranslate with revenus=synthese.mois.flux.revenus|euros %}revenus : {{ revenus }}{% endblocktranslate %}</p>
+  </div>
+  <div class="carte">
+    <p class="text-sm text-texte-discret">{% translate "Budget restant ce mois" %}</p>
+    {% if synthese.budget_restant is None %}
+      <p class="indicateur text-texte-discret">–</p>
+      <p class="aide"><a href="{% url 'budget:courant' %}">{% translate "Définir un budget" %}</a></p>
+    {% else %}
+      <p class="indicateur {% if synthese.budget_restant < 0 %}text-danger{% endif %}">{{ synthese.budget_restant|euros }}</p>
+      <p class="aide">{% blocktranslate with total=synthese.mois.budget_total|euros %}sur {{ total }} prévus{% endblocktranslate %}</p>
+    {% endif %}
+  </div>
+</section>
+
+<div class="grid gap-6 md:grid-cols-2">
+  <section class="carte space-y-3" aria-labelledby="titre-factures">
+    <div class="flex items-baseline justify-between gap-3">
+      <h2 id="titre-factures">{% translate "Factures à payer" %}</h2>
+      {% if synthese.nombre_factures %}<a class="text-sm" href="{% url 'documents:liste' %}?a_payer=on">{% blocktranslate count n=synthese.nombre_factures %}{{ n }} facture{% plural %}Les {{ n }} factures{% endblocktranslate %}</a>{% endif %}
+    </div>
+    {% if synthese.factures %}
+    <ul class="divide-y divide-bordure text-sm">
+      {% for facture in synthese.factures %}
+      <li class="flex items-center justify-between gap-3 py-2">
+        <span>
+          <a href="{% url 'documents:document' facture.document.pk %}">{{ facture.document.titre }}</a>
+          {% if facture.document.echeance %}
+          <span class="block {% if facture.en_retard %}text-danger{% else %}text-texte-discret{% endif %}">
+            {% if facture.en_retard %}{% translate "en retard" %} – {% endif %}{% blocktranslate with date=facture.document.echeance|date:"j M" %}échéance le {{ date }}{% endblocktranslate %}
+          </span>
+          {% endif %}
+        </span>
+        <span class="montant">{{ facture.document.montant|euros }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    <p class="text-right text-sm">{% translate "Total" %} : <strong class="tabular-nums">{{ synthese.montant_factures|euros }}</strong></p>
+    {% else %}
+    <p class="text-sm text-texte-discret">{% translate "Aucune facture en attente." %}</p>
+    {% endif %}
+  </section>
+
+  <section class="carte space-y-3" aria-labelledby="titre-alertes">
+    <h2 id="titre-alertes">{% translate "Budget du mois" %}</h2>
+    {% if synthese.alertes %}
+    <ul class="divide-y divide-bordure text-sm">
+      {% for ligne in synthese.alertes %}
+      <li class="flex items-center justify-between gap-3 py-2">
+        <span>{{ ligne.categorie }}</span>
+        <span class="montant text-danger">{% blocktranslate with ecart=ligne.montant_depasse|euros %}dépassé de {{ ecart }}{% endblocktranslate %}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% elif synthese.budget_restant is None %}
+    <p class="text-sm text-texte-discret">{% translate "Aucun budget défini pour ce mois." %}</p>
+    {% else %}
+    <p class="text-sm text-succes">{% translate "Aucun dépassement." %}</p>
+    {% endif %}
+    <p class="text-sm"><a href="{% url 'budget:courant' %}">{% translate "Voir le tableau du mois" %} →</a></p>
+  </section>
+</div>
+
+<div class="grid gap-6 md:grid-cols-2">
+  <section class="carte overflow-x-auto p-0" aria-labelledby="titre-comptes">
+    <h2 id="titre-comptes" class="px-4 pt-4">{% translate "Comptes" %}</h2>
+    <table class="tableau">
+      <tbody>
+        {% for ligne in synthese.comptes %}
+        <tr>
+          <td><a href="{% url 'banque:compte' ligne.compte.pk %}">{{ ligne.compte.nom }}</a></td>
+          <td class="montant {% if ligne.solde < 0 %}text-danger{% endif %}">{{ ligne.solde|euros }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <section class="carte overflow-x-auto p-0" aria-labelledby="titre-operations">
+    <div class="flex items-baseline justify-between gap-3 px-4 pt-4">
+      <h2 id="titre-operations">{% translate "Dernières opérations" %}</h2>
+      <a class="text-sm" href="{% url 'banque:operations' %}">{% translate "Toutes" %} →</a>
+    </div>
+    {% if synthese.dernieres_operations %}
+    <table class="tableau">
+      <tbody>
+        {% for operation in synthese.dernieres_operations %}
+        <tr>
+          <td class="whitespace-nowrap text-texte-discret">{{ operation.date|date:"j M" }}</td>
+          <td>{{ operation.libelle }}</td>
+          <td class="montant {% if operation.montant < 0 %}text-danger{% else %}text-succes{% endif %}">{{ operation.montant|euros }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="px-4 pb-4 text-sm text-texte-discret">{% translate "Aucune opération pour l'instant." %}</p>
+    {% endif %}
+  </section>
+</div>
+{% endif %}
+{% endblock %}

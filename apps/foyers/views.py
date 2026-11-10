@@ -18,10 +18,6 @@ from .middleware import CLE_SESSION_FOYER
 from .models import Adhesion, Invitation, Role
 
 
-class VueAccueil(AccesFoyerMixin, TemplateView):
-    template_name = "foyers/accueil.html"
-
-
 class VueMesFoyers(LoginRequiredMixin, TemplateView):
     template_name = "foyers/liste.html"
 

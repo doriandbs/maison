@@ -36,6 +36,10 @@ class LigneCategorie:
         return None if self.budget is None else self.budget - self.realise
 
     @property
+    def montant_depasse(self) -> Decimal:
+        return self.realise - self.budget if self.depassement else ZERO  # type: ignore[operator]
+
+    @property
     def depassement(self) -> bool:
         return (
             self.budget is not None

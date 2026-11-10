@@ -95,6 +95,9 @@
   .jauge-depassee {
     @apply accent-danger;
   }
+  .indicateur {
+    @apply mt-1 text-2xl font-semibold tabular-nums;
+  }
   .etiquette {
     @apply mb-1 block text-sm font-medium;
   }
