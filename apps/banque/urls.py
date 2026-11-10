@@ -27,6 +27,19 @@ urlpatterns = [
         name="supprimer_operation",
     ),
     path("virements/ajouter/", views.VueAjouterVirement.as_view(), name="ajouter_virement"),
+    path("operations/importer/", views.VueImporter.as_view(), name="importer"),
+    path("operations/importer/apercu/", views.VueApercuImport.as_view(), name="apercu_import"),
+    path("categories/regles/", views.VueRegles.as_view(), name="regles"),
+    path(
+        "categories/regles/appliquer/",
+        views.VueAppliquerRegles.as_view(),
+        name="appliquer_regles",
+    ),
+    path(
+        "categories/regles/<int:pk>/supprimer/",
+        views.VueSupprimerRegle.as_view(),
+        name="supprimer_regle",
+    ),
     path("categories/", views.VueCategories.as_view(), name="categories"),
     path("categories/ajouter/", views.VueAjouterCategorie.as_view(), name="ajouter_categorie"),
     path(

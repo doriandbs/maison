@@ -6,13 +6,14 @@
   <h1>{% translate "Opérations" %}</h1>
   {% if peut_modifier %}
   <span class="flex flex-wrap gap-2">
+    <a class="bouton-secondaire" href="{% url 'banque:importer' %}">{% icone "telecharger" classe="size-4" %}{% translate "Importer un relevé" %}</a>
     <a class="bouton-secondaire" href="{% url 'banque:ajouter_virement' %}">{% translate "Virement interne" %}</a>
     <a class="bouton-primaire" href="{% url 'banque:ajouter_operation' %}">{% icone "plus" classe="size-4" %}{% translate "Ajouter une opération" %}</a>
   </span>
   {% endif %}
 </div>
 
-<form method="get" class="carte grid gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+<form method="get" class="carte grid gap-4 sm:grid-cols-[2fr_1fr_1fr_auto] sm:items-end">
   {% for champ in filtre %}{% include "composants/champ.html" %}{% endfor %}
   <button class="bouton-secondaire">{% translate "Filtrer" %}</button>
 </form>

@@ -35,9 +35,9 @@ def section_de(espace: str, nom: str) -> str:
     if nom == "accueil":
         return "accueil"
     if espace == "banque":
-        if "categorie" in nom:
+        if "categorie" in nom or "regle" in nom:
             return "categories"
-        if "operation" in nom or "virement" in nom:
+        if "operation" in nom or "virement" in nom or "import" in nom:
             return "operations"
         return "comptes"
     if espace == "foyers":

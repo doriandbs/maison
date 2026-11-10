@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% load i18n icones %}
+{% block titre %}{% translate "Règles automatiques" %}{% endblock %}
+{% block contenu %}
+<div class="en-tete">
+  <div>
+    <p class="surtitre"><a href="{% url 'banque:categories' %}">{% translate "Catégories" %}</a></p>
+    <h1>{% translate "Règles automatiques" %}</h1>
+  </div>
+</div>
+<p class="aide">{% translate "À l'import d'un relevé, une opération dont le libellé contient le motif est rangée dans la catégorie. Si plusieurs règles conviennent, la plus précise (motif le plus long) l'emporte. Les majuscules et les accents sont ignorés." %}</p>
+
+{% if peut_modifier %}
+<div class="grid gap-6 lg:grid-cols-[2fr_1fr]">
+  <form method="post" class="carte grid gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-start">
+    {% include "composants/formulaire.html" with formulaire=form %}
+    <button class="bouton-primaire sm:mt-7">{% icone "plus" classe="size-4" %}{% translate "Ajouter" %}</button>
+  </form>
+  <form method="post" action="{% url 'banque:appliquer_regles' %}" class="carte flex flex-col justify-between gap-3">
+    {% csrf_token %}
+    <p class="text-sm">{% blocktranslate count n=a_classer %}{{ n }} opération est à classer.{% plural %}{{ n }} opérations sont à classer.{% endblocktranslate %}</p>
+    <button class="bouton-secondaire" {% if not a_classer or not regles %}disabled{% endif %}>{% translate "Leur appliquer les règles" %}</button>
+  </form>
+</div>
+{% endif %}
+
+{% if regles %}
+<div class="carte overflow-x-auto p-0">
+  <table class="tableau">
+    <thead><tr><th>{% translate "Le libellé contient" %}</th><th>{% translate "Catégorie" %}</th><th><span class="sr-only">{% translate "Actions" %}</span></th></tr></thead>
+    <tbody>
+      {% for regle in regles %}
+      <tr>
+        <td class="font-medium">{{ regle.motif }}</td>
+        <td>{{ regle.categorie }}</td>
+        <td class="py-1.5 text-right">
+          {% if peut_modifier %}
+          <form method="post" action="{% url 'banque:supprimer_regle' regle.pk %}">
+            {% csrf_token %}
+            <button class="bouton-discret bouton-icone hover:text-danger" title="{% translate 'Supprimer' %}" aria-label="{% blocktranslate with motif=regle.motif %}Supprimer la règle « {{ motif }} »{% endblocktranslate %}">{% icone "supprimer" classe="size-4" %}</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="carte"><p class="text-texte-discret">{% translate "Aucune règle pour l'instant. Le plus simple : cocher « Toujours pour… » lors d'un import." %}</p></div>
+{% endif %}
+{% endblock %}

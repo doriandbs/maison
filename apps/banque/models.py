@@ -5,7 +5,8 @@ from typing import Self
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import Q
+from django.db.models import F, Q
+from django.db.models.functions import Lower
 from django.utils.translation import gettext_lazy as _
 
 from apps.socle.models import ModeleDeFoyer, RequeteDeFoyer
@@ -197,6 +198,13 @@ class Operation(ModeleDeFoyer):
         related_name="operations",
     )
     note = models.TextField(_("note"), blank=True)
+    # Texte complet fourni par la banque lors d'un import (le libellé, lui, est raccourci).
+    libelle_banque = models.TextField(_("libellé de la banque"), blank=True, editable=False)
+    # Empreinte de la ligne du relevé : réimporter une période déjà vue ne crée pas de doublon.
+    # NULL plutôt que chaîne vide : l'unicité ne porte que sur les lignes importées.
+    empreinte_import = models.CharField(  # noqa: DJ001
+        max_length=64, null=True, blank=True, editable=False
+    )
     # Les deux opérations d'un virement interne partagent ce groupe ; elles ne
     # comptent ni en revenu ni en dépense.
     groupe_virement = models.UUIDField(null=True, blank=True, editable=False, db_index=True)
@@ -223,6 +231,11 @@ class Operation(ModeleDeFoyer):
                 condition=Q(groupe_virement__isnull=True) | Q(categorie__isnull=True),
                 name="operation_virement_sans_categorie",
             ),
+            models.UniqueConstraint(
+                fields=["compte", "empreinte_import"],
+                condition=Q(empreinte_import__isnull=False),
+                name="operation_import_unique",
+            ),
         ]
 
     def __str__(self) -> str:
@@ -237,3 +250,39 @@ class Operation(ModeleDeFoyer):
             raise ValidationError(_("Le compte appartient à un autre foyer."))
         if self.categorie_id and self.categorie.foyer_id != self.foyer_id:  # type: ignore[union-attr]
             raise ValidationError(_("La catégorie appartient à un autre foyer."))
+
+
+class RegleCategorisation(ModeleDeFoyer):
+    """« Libellé contient <motif> » → sous-catégorie. Le motif le plus long l'emporte."""
+
+    motif = models.CharField(
+        _("le libellé contient"),
+        max_length=100,
+        help_text=_("Sans tenir compte des majuscules ni des accents. Ex. : « SNCF », « Free »."),
+    )
+    categorie = models.ForeignKey(
+        Categorie,
+        verbose_name=_("catégorie"),
+        on_delete=models.CASCADE,
+        related_name="regles",
+    )
+
+    class Meta:
+        verbose_name = _("règle de catégorisation")
+        verbose_name_plural = _("règles de catégorisation")
+        ordering = ["motif"]
+        constraints = [
+            models.UniqueConstraint(
+                Lower("motif"), F("foyer"), name="regle_motif_unique_par_foyer"
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.motif} → {self.categorie}"
+
+    def clean(self) -> None:
+        self.motif = " ".join(self.motif.split())
+        if self.categorie_id and self.categorie.foyer_id != self.foyer_id:
+            raise ValidationError(_("La catégorie appartient à un autre foyer."))
+        if self.categorie_id and self.categorie.parent_id is None:
+            raise ValidationError(_("Choisissez une sous-catégorie."))

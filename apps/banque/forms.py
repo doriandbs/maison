@@ -9,7 +9,7 @@ from django.utils.translation import gettext_lazy as _
 from apps.foyers.models import Foyer
 from apps.socle.forms import FormulaireDeFoyer
 
-from .models import Categorie, Compte, Operation
+from .models import Categorie, Compte, Operation, RegleCategorisation
 
 
 class ChampDate(forms.DateField):
@@ -144,6 +144,12 @@ class FormulaireReleve(forms.Form):
 
 
 class FormulaireFiltreOperations(forms.Form):
+    recherche = forms.CharField(
+        label=_("Rechercher"),
+        required=False,
+        max_length=100,
+        widget=forms.TextInput(attrs={"type": "search", "placeholder": _("Libellé, note…")}),
+    )
     compte = forms.ModelChoiceField(
         label=_("Compte"),
         queryset=Compte.objects.none(),
@@ -160,3 +166,101 @@ class FormulaireFiltreOperations(forms.Form):
     def __init__(self, *args: Any, foyer: Foyer, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.fields["compte"].queryset = Compte.objects.du_foyer(foyer)  # type: ignore[attr-defined]
+
+
+# --- Import de relevés et règles ---------------------------------------------
+
+
+def sous_categories_proposees(foyer: Foyer) -> Any:
+    return (
+        Categorie.objects.du_foyer(foyer)
+        .filter(parent__isnull=False, archive_le__isnull=True)
+        .select_related("parent")
+        .order_by("parent__nom", "nom")
+    )
+
+
+class FormulaireImport(forms.Form):
+    compte = forms.ModelChoiceField(label=_("Compte"), queryset=Compte.objects.none())
+    fichier = forms.FileField(
+        label=_("Relevé"),
+        help_text=_(
+            "Société Générale : espace client → le compte → « Télécharger » → format CSV. "
+            "Vous pourrez vérifier chaque ligne avant l'import."
+        ),
+        widget=forms.ClearableFileInput(attrs={"accept": ".csv,text/csv"}),
+    )
+
+    def __init__(self, *args: Any, foyer: Foyer, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.fields["compte"].queryset = Compte.objects.du_foyer(foyer).actifs()  # type: ignore[attr-defined]
+
+
+class FormulaireApercu(forms.Form):
+    """Une case « importer », une catégorie et une case « mémoriser » par ligne importable."""
+
+    def __init__(self, *args: Any, apercu: Any, foyer: Foyer, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.apercu = apercu
+        categories = sous_categories_proposees(foyer)
+        for ligne in apercu.lignes:
+            if not ligne.importable:
+                continue
+            self.fields[f"inclure_{ligne.rang}"] = forms.BooleanField(
+                required=False, initial=ligne.cochee_par_defaut, label=_("Importer")
+            )
+            self.fields[f"categorie_{ligne.rang}"] = forms.ModelChoiceField(
+                queryset=categories,
+                required=False,
+                initial=ligne.categorie,
+                empty_label=_("À classer"),
+                label=_("Catégorie"),
+            )
+            self.fields[f"memoriser_{ligne.rang}"] = forms.BooleanField(
+                required=False, label=_("Toujours classer ainsi")
+            )
+
+    def lignes(self) -> list[dict[str, Any]]:
+        """Lignes de l'aperçu avec leurs champs, pour le gabarit (sans logique de rendu)."""
+        return [
+            {
+                "ligne": ligne,
+                "inclure": self[f"inclure_{ligne.rang}"] if ligne.importable else None,
+                "categorie": self[f"categorie_{ligne.rang}"] if ligne.importable else None,
+                "memoriser": self[f"memoriser_{ligne.rang}"] if ligne.importable else None,
+            }
+            for ligne in self.apercu.lignes
+        ]
+
+    def retenues(self) -> list[tuple[Any, Categorie | None, bool]]:
+        """(ligne, catégorie choisie, règle à mémoriser) pour chaque ligne cochée."""
+        donnees = self.cleaned_data
+        return [
+            (ligne, donnees[f"categorie_{ligne.rang}"], donnees[f"memoriser_{ligne.rang}"])
+            for ligne in self.apercu.lignes
+            if ligne.importable and donnees.get(f"inclure_{ligne.rang}")
+        ]
+
+
+class FormulaireRegle(FormulaireDeFoyer):
+    class Meta:
+        model = RegleCategorisation
+        fields = ("motif", "categorie")
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.fields["categorie"].queryset = sous_categories_proposees(self.foyer)  # type: ignore[attr-defined]
+
+    def clean_motif(self) -> str:
+        motif = " ".join(self.cleaned_data["motif"].split())
+        if len(motif) < 2:
+            raise forms.ValidationError(_("Au moins 2 caractères."))
+        # Django ne vérifie pas seul cette contrainte : le foyer n'est pas un champ du formulaire.
+        doublon = (
+            RegleCategorisation.objects.du_foyer(self.foyer)
+            .filter(motif__iexact=motif)
+            .exclude(pk=self.instance.pk)
+        )
+        if doublon.exists():
+            raise forms.ValidationError(_("Une règle existe déjà pour ce motif."))
+        return motif

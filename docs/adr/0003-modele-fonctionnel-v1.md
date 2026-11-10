@@ -12,7 +12,13 @@ Date : 2026-11-10 · Statut : accepté (réponses de Dorian aux questions de cad
 
 - `Compte` : nom, type, établissement, titulaires, drapeau épargne, solde initial **et date
   d'ouverture**, archivage par `archive_le`.
-- Tout est saisi à la main, aucune synchronisation bancaire.
+- Aucune synchronisation bancaire automatique. Les opérations se saisissent à la main ou
+  s'importent depuis le fichier exporté par la banque (CSV Société Générale pour commencer ;
+  un format = un module de `banque/importation/`). L'import passe toujours par un aperçu :
+  doublons écartés par empreinte, lignes déjà comprises dans le solde initial ignorées,
+  contrôle du solde avec celui annoncé par la banque.
+- Règles de catégorisation : « le libellé contient X » → sous-catégorie, le motif le plus long
+  l'emporte. Appliquées à l'import et, sur demande, aux opérations restées à classer.
 - Comptes de placement (PEA, assurance vie, crypto…) : on saisit les opérations (versements,
   retraits) **et** un `ReleveSolde` en fin de mois ; la valeur du compte est le dernier relevé.
   `ReleveSolde` est donc livré en V1.

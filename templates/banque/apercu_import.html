@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% load i18n formats icones %}
+{% block titre %}{% translate "Vérifier l'import" %}{% endblock %}
+{% block contenu %}
+<div class="en-tete">
+  <div>
+    <p class="surtitre">{% blocktranslate with compte=apercu.compte.nom %}Import dans « {{ compte }} »{% endblocktranslate %}</p>
+    <h1>{% translate "Vérifier avant d'importer" %}</h1>
+  </div>
+</div>
+
+<section class="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4" aria-label="{% translate 'Résumé' %}">
+  <div class="carte"><p class="libelle-indicateur">{% translate "Nouvelles" %}</p><p class="indicateur text-succes">{{ nb_nouvelles }}</p><p class="aide">{% translate "cochées" %}</p></div>
+  <div class="carte"><p class="libelle-indicateur">{% translate "Doublons possibles" %}</p><p class="indicateur {% if nb_doublons %}text-alerte{% endif %}">{{ nb_doublons }}</p><p class="aide">{% translate "non cochés : déjà saisis ?" %}</p></div>
+  <div class="carte"><p class="libelle-indicateur">{% translate "Déjà importées" %}</p><p class="indicateur text-texte-discret">{{ nb_deja }}</p><p class="aide">{% translate "ignorées" %}</p></div>
+  <div class="carte"><p class="libelle-indicateur">{% translate "Avant le solde initial" %}</p><p class="indicateur text-texte-discret">{{ nb_anterieures }}</p><p class="aide">{% translate "ignorées" %}</p></div>
+</section>
+
+{% if apercu.nouveau_debut %}
+<section class="message-warning flex-col gap-3 sm:flex-row sm:items-center" role="status">
+  {% icone "calendrier" classe="size-5 shrink-0 text-alerte" %}
+  <p class="flex-1">
+    {% blocktranslate with debut=apercu.compte.ouvert_le|date:"j F Y" solde=apercu.compte.solde_initial|euros count n=nb_anterieures %}{{ n }} ligne est antérieure au solde initial du compte ({{ solde }} au {{ debut }}) : elle y est déjà comptée et ne sera pas importée.{% plural %}{{ n }} lignes sont antérieures au solde initial du compte ({{ solde }} au {{ debut }}) : elles y sont déjà comptées et ne seront pas importées.{% endblocktranslate %}
+    {% translate "Pour garder l'historique, faites démarrer le compte plus tôt : le solde initial est recalculé et le solde actuel ne change pas." %}
+  </p>
+  {% if peut_modifier %}
+  <form method="post">
+    {% csrf_token %}
+    <button class="bouton-secondaire" name="action" value="avancer_debut">{% blocktranslate with date=apercu.nouveau_debut|date:"j F Y" %}Démarrer le compte au {{ date }}{% endblocktranslate %}</button>
+  </form>
+  {% endif %}
+</section>
+{% endif %}
+
+{% if apercu.ecart is not None %}
+<section class="carte flex flex-wrap items-center gap-4" aria-label="{% translate 'Contrôle du solde' %}">
+  <span class="vignette {% if apercu.ecart %}vignette-alerte{% else %}vignette-entree{% endif %}">{% if apercu.ecart %}{% icone "alerte" classe="size-4" %}{% else %}{% icone "valider" classe="size-4" %}{% endif %}</span>
+  <div class="min-w-0 flex-1 text-sm">
+    <p class="font-medium">{% if apercu.ecart %}{% blocktranslate with ecart=apercu.ecart|euros %}Écart de {{ ecart }} avec la banque{% endblocktranslate %}{% else %}{% translate "Le solde concorde avec celui de la banque" %}{% endif %}</p>
+    <p class="text-texte-discret">
+      {% blocktranslate with date=apercu.date_solde|date:"j F Y" banque=apercu.solde_banque|euros maison=apercu.solde_calcule|euros %}Au {{ date }} : {{ banque }} selon la banque, {{ maison }} selon Maison si les nouvelles lignes sont importées.{% endblocktranslate %}
+      {% if apercu.ecart %}{% translate "Une opération manque peut-être, ou le solde initial du compte est à corriger." %}{% endif %}
+    </p>
+  </div>
+</section>
+{% endif %}
+
+<form method="post" class="space-y-4">
+  {% csrf_token %}
+  {% for erreur in formulaire.non_field_errors %}<p class="message-error" role="alert">{{ erreur }}</p>{% endfor %}
+  <div class="carte overflow-x-auto p-0">
+    <table class="tableau">
+      <thead>
+        <tr>
+          <th class="w-10"><span class="sr-only">{% translate "Importer" %}</span></th>
+          <th>{% translate "Date" %}</th>
+          <th>{% translate "Libellé" %}</th>
+          <th class="min-w-56">{% translate "Catégorie" %}</th>
+          <th class="text-right">{% translate "Montant" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for element in formulaire.lignes %}{% with ligne=element.ligne %}
+        <tr {% if not ligne.importable %}class="text-texte-discret"{% endif %}>
+          <td>
+            {% if element.inclure %}
+            <label class="grid size-6 cursor-pointer place-items-center"><span class="sr-only">{% blocktranslate with libelle=ligne.libelle %}Importer « {{ libelle }} »{% endblocktranslate %}</span>{{ element.inclure }}</label>
+            {% endif %}
+          </td>
+          <td class="whitespace-nowrap">{{ ligne.date|date:"j M Y" }}</td>
+          <td>
+            <span class="font-medium {% if ligne.importable %}text-texte{% endif %}">{{ ligne.libelle }}</span>
+            {% if ligne.statut == "doublon_possible" %}<span class="pastille-alerte">{% translate "doublon possible" %}</span>
+            {% elif ligne.statut == "deja_importee" %}<span class="pastille-neutre">{% translate "déjà importée" %}</span>
+            {% elif ligne.statut == "anterieure" %}<span class="pastille-neutre">{% translate "avant le solde initial" %}</span>{% endif %}
+            <div class="max-w-md truncate text-xs text-texte-discret" title="{{ ligne.libelle_banque }}">{{ ligne.libelle_banque }}</div>
+          </td>
+          <td>
+            {% if element.categorie %}
+              <label class="sr-only" for="{{ element.categorie.id_for_label }}">{% translate "Catégorie" %}</label>
+              {{ element.categorie }}
+              <label class="mt-1.5 flex items-center gap-2 text-xs text-texte-discret">{{ element.memoriser }}{% blocktranslate with tiers=ligne.tiers %}Toujours pour « {{ tiers }} »{% endblocktranslate %}</label>
+              {% for erreur in element.categorie.errors %}<p class="erreur" role="alert">{{ erreur }}</p>{% endfor %}
+            {% else %}–{% endif %}
+          </td>
+          <td class="montant font-medium {% if ligne.montant > 0 and ligne.importable %}text-succes{% endif %}">{{ ligne.montant|euros }}</td>
+        </tr>
+        {% endwith %}{% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if peut_modifier %}
+  <div class="sticky bottom-20 z-10 flex flex-wrap justify-end gap-3 rounded-2xl border border-bordure bg-surface/90 p-3 shadow-haute backdrop-blur-xl lg:bottom-4">
+    <button class="bouton-secondaire" name="action" value="annuler" formnovalidate>{% translate "Annuler" %}</button>
+    <button class="bouton-primaire" name="action" value="importer">{% icone "valider" classe="size-4" %}{% translate "Importer les lignes cochées" %}</button>
+  </div>
+  {% endif %}
+</form>
+{% endblock %}
