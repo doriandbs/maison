@@ -290,6 +290,32 @@ class TestParcours:
 
         assert not Adhesion.objects.filter(foyer=admin.foyer, utilisateur__email="eve@example.org")
 
+    def test_seul_un_proprietaire_se_voit_proposer_le_role_proprietaire(self, client):
+        admin = FabriqueAdhesion(role=Role.ADMINISTRATEUR, est_principal=True)
+        FabriqueAdhesion(foyer=admin.foyer, role=Role.PROPRIETAIRE)
+        proprietaire = FabriqueAdhesion(foyer=admin.foyer, role=Role.PROPRIETAIRE)
+
+        page_admin = _client_de(client, admin).get(reverse("foyers:membres")).context
+        page_proprietaire = _client_de(client, proprietaire).get(reverse("foyers:membres")).context
+
+        assert Role.PROPRIETAIRE not in dict(page_admin["roles"])
+        assert Role.PROPRIETAIRE not in dict(
+            page_admin["formulaire_invitation"].fields["role"].choices
+        )
+        assert not [m for m in page_admin["membres"] if m.role == Role.PROPRIETAIRE and m.gerable]
+        assert Role.PROPRIETAIRE in dict(
+            page_proprietaire["formulaire_invitation"].fields["role"].choices
+        )
+
+    def test_inviter_sa_conjointe_comme_coproprietaire(self, client):
+        moi = FabriqueAdhesion(role=Role.PROPRIETAIRE, est_principal=True)
+
+        _client_de(client, moi).post(
+            reverse("foyers:inviter"), {"email": "conjointe@example.org", "role": Role.PROPRIETAIRE}
+        )
+
+        assert Invitation.objects.get(email="conjointe@example.org").role == Role.PROPRIETAIRE
+
     def test_revoquer_une_invitation(self, client):
         admin = FabriqueAdhesion(role=Role.ADMINISTRATEUR)
         invitation = FabriqueInvitation(foyer=admin.foyer)

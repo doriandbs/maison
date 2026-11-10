@@ -13,7 +13,7 @@ from apps.socle.limites import limiter_par_utilisateur
 
 from . import services
 from .acces import AccesFoyerMixin
-from .forms import FormulaireFoyer, FormulaireInvitation, FormulaireRole
+from .forms import FormulaireFoyer, FormulaireInvitation, FormulaireRole, roles_attribuables
 from .middleware import CLE_SESSION_FOYER
 from .models import Adhesion, Invitation, Role
 
@@ -59,15 +59,23 @@ class VueMembres(AccesFoyerMixin, TemplateView):
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         contexte = super().get_context_data(**kwargs)
-        contexte["membres"] = (
+        membres = list(
             Adhesion.objects.du_foyer(self.foyer)
             .select_related("utilisateur")
             .order_by("utilisateur__email")
         )
-        contexte["roles"] = Role.choices
+        est_proprietaire = self.adhesion.role == Role.PROPRIETAIRE
+        peut_administrer = self.adhesion.a_au_moins(Role.ADMINISTRATEUR)
+        for membre in membres:
+            # Un administrateur ne touche pas aux propriétaires (le service le refuserait).
+            membre.gerable = peut_administrer and (  # type: ignore[attr-defined]
+                est_proprietaire or membre.role != Role.PROPRIETAIRE
+            )
+        contexte["membres"] = membres
+        contexte["roles"] = roles_attribuables(self.adhesion)
         if self.adhesion.a_au_moins(Role.ADMINISTRATEUR):
             contexte["invitations"] = Invitation.objects.du_foyer(self.foyer).en_attente()
-            contexte["formulaire_invitation"] = FormulaireInvitation()
+            contexte["formulaire_invitation"] = FormulaireInvitation(par=self.adhesion)
         return contexte
 
 
@@ -76,7 +84,7 @@ class VueInviter(AccesFoyerMixin, View):
     role_ecriture = Role.ADMINISTRATEUR
 
     def post(self, request: HttpRequest) -> HttpResponse:
-        formulaire = FormulaireInvitation(request.POST)
+        formulaire = FormulaireInvitation(request.POST, par=self.adhesion)
         if not formulaire.is_valid():
             messages.error(request, _("Adresse e-mail ou rôle invalide."))
             return redirect("foyers:membres")

@@ -58,8 +58,11 @@ def inviter(
 ) -> tuple[Invitation, str]:
     """Crée l'invitation et renvoie le jeton en clair, qui n'est stocké nulle part."""
     email = email.strip().lower()
-    if role == Role.PROPRIETAIRE:
-        raise ErreurFoyer(_("On ne peut pas inviter directement un propriétaire."))
+    invitant = Adhesion.objects.du_foyer(foyer).filter(utilisateur=invite_par).first()
+    if invitant is None or not invitant.a_au_moins(Role.ADMINISTRATEUR):
+        raise ErreurFoyer(_("Vous n'avez pas le droit d'inviter dans ce foyer."))
+    if role == Role.PROPRIETAIRE and invitant.role != Role.PROPRIETAIRE:
+        raise ErreurFoyer(_("Seul un propriétaire peut inviter un autre propriétaire."))
     if Adhesion.objects.du_foyer(foyer).filter(utilisateur__email=email).exists():
         raise ErreurFoyer(_("Cette personne est déjà membre du foyer."))
     Invitation.objects.du_foyer(foyer).en_attente().filter(email=email).update(

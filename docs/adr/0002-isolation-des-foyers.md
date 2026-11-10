@@ -50,7 +50,8 @@ C'est le foyer ouvert à la connexion ; les autres sont des foyers annexes.
   Les invitations ne sont listées nulle part dans l'application pour le destinataire.
 - Le compte qui accepte doit en plus avoir l'adresse de l'invitation : un lien transféré ne
   sert à personne d'autre.
-- On n'invite pas directement un propriétaire ; un propriétaire promeut un membre.
+- Un foyer peut avoir plusieurs propriétaires (un couple à parts égales). Seul un propriétaire
+  peut en inviter ou en nommer un autre ; un administrateur ne le peut pas.
 
 ## Prévu plus tard : visibilité par membre
 

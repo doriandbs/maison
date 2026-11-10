@@ -57,10 +57,13 @@ class TestFoyerPrincipal:
 
 class TestInviter:
     def test_cree_une_invitation_sans_stocker_le_jeton(self):
-        foyer, alice = FabriqueFoyer(), FabriqueUtilisateur()
+        alice = FabriqueAdhesion(role=Role.ADMINISTRATEUR)
 
         invitation, jeton = services.inviter(
-            foyer=foyer, email=" Bob@Example.org ", role=Role.LECTEUR, invite_par=alice
+            foyer=alice.foyer,
+            email=" Bob@Example.org ",
+            role=Role.LECTEUR,
+            invite_par=alice.utilisateur,
         )
 
         assert invitation.email == "bob@example.org"
@@ -68,34 +71,66 @@ class TestInviter:
         assert jeton not in invitation.empreinte_jeton
         assert invitation.expire_le > timezone.now() + timedelta(days=6)
 
-    def test_refuse_le_role_proprietaire(self):
+    def test_un_administrateur_ne_peut_pas_inviter_un_proprietaire(self):
+        admin = FabriqueAdhesion(role=Role.ADMINISTRATEUR)
+
         with pytest.raises(ErreurFoyer):
             services.inviter(
-                foyer=FabriqueFoyer(),
+                foyer=admin.foyer,
                 email="bob@example.org",
                 role=Role.PROPRIETAIRE,
-                invite_par=FabriqueUtilisateur(),
+                invite_par=admin.utilisateur,
+            )
+
+    def test_un_proprietaire_peut_inviter_un_coproprietaire(self):
+        proprietaire = FabriqueAdhesion(role=Role.PROPRIETAIRE)
+        bob = FabriqueUtilisateur(email="bob@example.org")
+
+        invitation, _ = services.inviter(
+            foyer=proprietaire.foyer,
+            email="bob@example.org",
+            role=Role.PROPRIETAIRE,
+            invite_par=proprietaire.utilisateur,
+        )
+        services.accepter_invitation(invitation=invitation, utilisateur=bob)
+
+        roles = set(Adhesion.objects.du_foyer(proprietaire.foyer).values_list("role", flat=True))
+        assert roles == {Role.PROPRIETAIRE}
+
+    @pytest.mark.parametrize("role", [None, Role.MEMBRE])
+    def test_seul_un_administrateur_du_foyer_invite(self, role):
+        foyer = FabriqueFoyer()
+        invitant = FabriqueAdhesion(foyer=foyer, role=role).utilisateur if role else None
+
+        with pytest.raises(ErreurFoyer):
+            services.inviter(
+                foyer=foyer,
+                email="bob@example.org",
+                role=Role.LECTEUR,
+                invite_par=invitant or FabriqueUtilisateur(),
             )
 
     def test_refuse_une_personne_deja_membre(self):
         adhesion = FabriqueAdhesion()
+        admin = FabriqueAdhesion(foyer=adhesion.foyer, role=Role.ADMINISTRATEUR)
 
         with pytest.raises(ErreurFoyer):
             services.inviter(
                 foyer=adhesion.foyer,
                 email=adhesion.utilisateur.email,
                 role=Role.MEMBRE,
-                invite_par=FabriqueUtilisateur(),
+                invite_par=admin.utilisateur,
             )
 
     def test_une_nouvelle_invitation_revoque_la_precedente(self):
         ancienne = FabriqueInvitation(email="bob@example.org")
+        admin = FabriqueAdhesion(foyer=ancienne.foyer, role=Role.ADMINISTRATEUR)
 
         services.inviter(
             foyer=ancienne.foyer,
             email="bob@example.org",
             role=Role.MEMBRE,
-            invite_par=FabriqueUtilisateur(),
+            invite_par=admin.utilisateur,
         )
 
         ancienne.refresh_from_db()

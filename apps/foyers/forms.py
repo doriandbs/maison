@@ -1,9 +1,16 @@
+from typing import Any
+
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
-from .models import Foyer, Role
+from .models import Adhesion, Foyer, Role
 
-ROLES_INVITABLES = [choix for choix in Role.choices if choix[0] != Role.PROPRIETAIRE]
+
+def roles_attribuables(par: Adhesion) -> list[tuple[str, str]]:
+    """Rôles qu'un membre peut donner : seul un propriétaire peut faire d'autres propriétaires."""
+    if par.role == Role.PROPRIETAIRE:
+        return list(Role.choices)
+    return [choix for choix in Role.choices if choix[0] != Role.PROPRIETAIRE]
 
 
 class FormulaireFoyer(forms.ModelForm):
@@ -16,7 +23,11 @@ class FormulaireFoyer(forms.ModelForm):
 
 class FormulaireInvitation(forms.Form):
     email = forms.EmailField(label=_("Adresse e-mail"))
-    role = forms.ChoiceField(label=_("Rôle"), choices=ROLES_INVITABLES, initial=Role.MEMBRE)
+    role = forms.ChoiceField(label=_("Rôle"), initial=Role.MEMBRE)
+
+    def __init__(self, *args: Any, par: Adhesion, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.fields["role"].choices = roles_attribuables(par)  # type: ignore[attr-defined]
 
 
 class FormulaireRole(forms.Form):
