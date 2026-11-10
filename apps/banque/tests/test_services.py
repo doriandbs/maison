@@ -11,6 +11,7 @@ from apps.banque.services.categories import (
     basculer_archivage_categorie,
 )
 from apps.banque.services.operations import ErreurVirement, creer_virement, supprimer_operation
+from apps.banque.services.regroupement import regrouper_par_etablissement
 from apps.banque.services.soldes import enregistrer_releve, soldes_des_comptes
 from apps.foyers.services import creer_foyer
 from apps.foyers.tests.fabriques import FabriqueFoyer
@@ -308,3 +309,30 @@ class TestCategories:
 )
 def test_filtre_euros(valeur, attendu):
     assert euros(valeur) == attendu
+
+
+class TestRegroupementParEtablissement:
+    def test_regroupe_sans_tenir_compte_de_la_casse_ni_des_espaces(self):
+        foyer = FabriqueFoyer()
+        # La graphie en minuscules vient en premier : c'est quand même « Banque Populaire » qui
+        # est retenu.
+        a = FabriqueCompte(foyer=foyer, nom="Joint", etablissement=" banque  populaire ")
+        b = FabriqueCompte(foyer=foyer, nom="Livret", etablissement="Banque Populaire")
+        c = FabriqueCompte(foyer=foyer, nom="PEA", etablissement="Boursorama")
+        d = FabriqueCompte(foyer=foyer, nom="Espèces", etablissement="")
+        soldes = {
+            a.pk: Decimal("100"),
+            b.pk: Decimal("50"),
+            c.pk: Decimal("10"),
+            d.pk: Decimal("5"),
+        }
+
+        groupes = regrouper_par_etablissement([a, b, c, d], soldes)
+
+        assert [g.nom for g in groupes] == ["Banque Populaire", "Boursorama", "Sans établissement"]
+        assert [ligne.compte for ligne in groupes[0].lignes] == [a, b]
+        assert [g.total for g in groupes] == [Decimal("150"), Decimal("10"), Decimal("5")]
+        assert groupes[-1].est_sans_etablissement
+
+    def test_aucun_compte(self):
+        assert regrouper_par_etablissement([], {}) == []

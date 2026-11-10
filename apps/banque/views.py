@@ -37,6 +37,7 @@ from .models import Categorie, Compte, Operation, ReleveSolde
 from .services import categories as service_categories
 from .services import operations as service_operations
 from .services import soldes as service_soldes
+from .services.regroupement import regrouper_par_etablissement
 
 # --- Comptes ---------------------------------------------------------------
 
@@ -52,6 +53,7 @@ class VueComptes(AccesFoyerMixin, TemplateView):
             compte.solde = soldes[compte.pk]  # type: ignore[attr-defined]
         actifs = [compte for compte in comptes if not compte.est_archive]
         contexte["comptes"] = actifs
+        contexte["groupes"] = regrouper_par_etablissement(actifs, soldes)
         contexte["comptes_archives"] = [compte for compte in comptes if compte.est_archive]
         contexte["total"] = sum(compte.solde for compte in actifs)  # type: ignore[attr-defined]
         return contexte

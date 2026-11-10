@@ -200,6 +200,20 @@ class TestComptes:
         assert reponse.context["total"] == Decimal("1234.50")
         assert "1 234,50 €" in reponse.content.decode()
 
+    def test_comptes_affiches_par_etablissement(self, client, alice):
+        FabriqueCompte(foyer=alice.foyer, nom="Joint", etablissement="Crédit Mutuel")
+        FabriqueCompte(foyer=alice.foyer, nom="Livret A", etablissement="crédit mutuel")
+        FabriqueCompte(foyer=alice.foyer, nom="PEA", etablissement="Boursorama")
+
+        reponse = client.get(reverse("banque:comptes"))
+        groupes = reponse.context["groupes"]
+
+        assert [(g.nom, len(g.lignes)) for g in groupes] == [
+            ("Boursorama", 1),
+            ("Crédit Mutuel", 2),
+        ]
+        assert "2 comptes" in reponse.content.decode()
+
     def test_le_total_ignore_les_comptes_archives(self, client, alice):
         FabriqueCompte(foyer=alice.foyer, solde_initial=Decimal("100.00"))
         FabriqueCompte(

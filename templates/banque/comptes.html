@@ -3,33 +3,50 @@
 {% block titre %}{% translate "Comptes" %}{% endblock %}
 {% block contenu %}
 <div class="en-tete">
-  <h1>{% translate "Comptes" %}</h1>
+  <div>
+    {% if comptes %}<p class="surtitre">{% blocktranslate count n=groupes|length %}{{ n }} établissement{% plural %}{{ n }} établissements{% endblocktranslate %}</p>{% endif %}
+    <h1>{% translate "Comptes" %}</h1>
+  </div>
   {% if peut_modifier %}<a class="bouton-primaire" href="{% url 'banque:ajouter_compte' %}">{% icone "plus" classe="size-4" %}{% translate "Ajouter un compte" %}</a>{% endif %}
 </div>
 
 {% if comptes %}
-<div class="carte overflow-x-auto p-0">
-  <table class="tableau">
-    <thead>
-      <tr><th>{% translate "Compte" %}</th><th>{% translate "Type" %}</th><th>{% translate "Établissement" %}</th><th class="text-right">{% translate "Solde" %}</th></tr>
-    </thead>
-    <tbody>
-      {% for compte in comptes %}
-      <tr>
-        <td>
-          <a href="{% url 'banque:compte' compte.pk %}">{{ compte.nom }}</a>
-          {% if compte.est_epargne %}<span class="pastille">{% translate "épargne" %}</span>{% endif %}
-        </td>
-        <td>{{ compte.get_type_display }}</td>
-        <td>{{ compte.etablissement }}</td>
-        <td class="montant {% if compte.solde < 0 %}text-danger{% endif %}">{{ compte.solde|euros }}</td>
-      </tr>
+<section class="carte flex flex-wrap items-baseline justify-between gap-3" aria-label="{% translate 'Total' %}">
+  <p class="libelle-indicateur">{% blocktranslate count n=comptes|length %}Total de {{ n }} compte{% plural %}Total des {{ n }} comptes{% endblocktranslate %}</p>
+  <p class="indicateur mt-0 {% if total < 0 %}text-danger{% endif %}" data-compteur="{{ total|valeur_brute }}">{{ total|euros }}</p>
+</section>
+
+<div class="grid items-start gap-6 lg:grid-cols-2">
+  {% for groupe in groupes %}
+  <section class="carte p-0" aria-labelledby="etablissement-{{ forloop.counter }}">
+    <div class="flex items-center gap-3 border-b border-bordure px-5 py-4">
+      <span class="vignette {% if not groupe.est_sans_etablissement %}bg-primaire-50 font-semibold text-primaire-600{% endif %}" aria-hidden="true">
+        {% if groupe.est_sans_etablissement %}{% icone "comptes" classe="size-4" %}{% else %}{{ groupe.nom|first|upper }}{% endif %}
+      </span>
+      <div class="min-w-0 flex-1">
+        <h2 id="etablissement-{{ forloop.counter }}" class="truncate">{{ groupe.nom }}</h2>
+        <p class="text-xs text-texte-discret">{% blocktranslate count n=groupe.lignes|length %}{{ n }} compte{% plural %}{{ n }} comptes{% endblocktranslate %}</p>
+      </div>
+      <p class="montant font-semibold {% if groupe.total < 0 %}text-danger{% endif %}">{{ groupe.total|euros }}</p>
+    </div>
+    <ul class="liste px-3 py-1">
+      {% for ligne in groupe.lignes %}
+      <li>
+        <a class="ligne rounded-xl px-2 text-texte no-underline transition-colors hover:bg-surface-2 hover:no-underline" href="{% url 'banque:compte' ligne.compte.pk %}">
+          <span class="min-w-0 flex-1">
+            <span class="flex items-center gap-2">
+              <span class="truncate font-medium">{{ ligne.compte.nom }}</span>
+              {% if ligne.compte.est_epargne %}<span class="pastille">{% translate "épargne" %}</span>{% endif %}
+            </span>
+            <span class="block text-xs text-texte-discret">{{ ligne.compte.get_type_display }}</span>
+          </span>
+          <span class="montant {% if ligne.solde < 0 %}text-danger{% endif %}">{{ ligne.solde|euros }}</span>
+        </a>
+      </li>
       {% endfor %}
-    </tbody>
-    <tfoot>
-      <tr><th colspan="3">{% translate "Total" %}</th><td class="montant font-semibold">{{ total|euros }}</td></tr>
-    </tfoot>
-  </table>
+    </ul>
+  </section>
+  {% endfor %}
 </div>
 {% else %}
 <div class="carte"><p>{% translate "Aucun compte pour l'instant. Commencez par ajouter votre compte courant avec son solde du jour." %}</p></div>
@@ -38,10 +55,10 @@
 {% if comptes_archives %}
 <details class="carte">
   <summary class="cursor-pointer font-medium">{% translate "Comptes archivés" %} ({{ comptes_archives|length }})</summary>
-  <ul class="mt-3 divide-y divide-bordure">
+  <ul class="liste mt-3">
     {% for compte in comptes_archives %}
-    <li class="flex items-center justify-between gap-3 py-2">
-      <a href="{% url 'banque:compte' compte.pk %}">{{ compte.nom }}</a>
+    <li class="ligne">
+      <span><a href="{% url 'banque:compte' compte.pk %}">{{ compte.nom }}</a>{% if compte.etablissement %} <span class="text-sm text-texte-discret">· {{ compte.etablissement }}</span>{% endif %}</span>
       <span class="montant">{{ compte.solde|euros }}</span>
     </li>
     {% endfor %}
