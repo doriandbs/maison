@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% load i18n formats icones %}
+{% block titre %}{{ pret.nom }}{% endblock %}
+{% block contenu %}
+<div class="en-tete">
+  <div>
+    <p class="surtitre"><a href="{% url 'prets:liste' %}">{% translate "Crédits" %}</a></p>
+    <h1>{{ pret.nom }}</h1>
+    <p class="text-sm text-texte-discret">
+      {% if pret.etablissement %}{{ pret.etablissement }} · {% endif %}{{ pret.capital|euros }} {% translate "à" %} {{ pret.taux_annuel|floatformat:"-3" }} % {% translate "sur" %} {{ pret.duree_mois }} {% translate "mois" %}
+      {% if pret.compte %} · <a href="{% url 'banque:compte' pret.compte.pk %}">{{ pret.compte.nom }}</a>{% endif %}
+    </p>
+  </div>
+  {% if peut_modifier %}
+  <span class="flex flex-wrap gap-2">
+    <a class="bouton-secondaire" href="{% url 'prets:modifier' pret.pk %}">{% icone "modifier" classe="size-4" %}{% translate "Modifier" %}</a>
+    <a class="bouton-danger" href="{% url 'prets:supprimer' pret.pk %}">{% translate "Supprimer" %}</a>
+  </span>
+  {% endif %}
+</div>
+
+<section class="carte-vedette" aria-label="{% translate 'Capital restant dû' %}">
+  <div class="grid gap-6 md:grid-cols-[1.4fr_1fr] md:items-end">
+    <div>
+      <p class="text-sm font-medium text-white/75">{% translate "Capital restant dû" %}</p>
+      <p class="mt-1 text-4xl font-semibold tracking-tight tabular-nums sm:text-5xl" data-compteur="{{ encours.capital_restant_du|valeur_brute }}">{{ encours.capital_restant_du|euros }}</p>
+      <span class="jauge mt-4 max-w-md" aria-hidden="true"><span style="--part: {{ encours.part_remboursee|nombre_brut }}%"></span></span>
+      <p class="mt-2 text-sm text-white/75">{% blocktranslate with part=encours.part_remboursee|floatformat:0 %}{{ part }} % remboursés{% endblocktranslate %}</p>
+    </div>
+    <dl class="grid grid-cols-2 gap-4 rounded-2xl bg-white/10 p-4 text-sm ring-1 ring-white/15">
+      <div><dt class="text-white/70">{% translate "Échéances restantes" %}</dt><dd class="text-lg font-semibold tabular-nums">{{ encours.echeances_restantes }}</dd></div>
+      <div><dt class="text-white/70">{% translate "Fin" %}</dt><dd class="text-lg font-semibold">{{ tableau.date_fin|date:"F Y"|capfirst }}</dd></div>
+    </dl>
+  </div>
+</section>
+
+<section class="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4" aria-label="{% translate 'Chiffres clés' %}">
+  <div class="carte">
+    <p class="libelle-indicateur">{% translate "Prochaine échéance" %}</p>
+    <p class="indicateur">{{ encours.prochaine_echeance.total|euros }}</p>
+    <p class="aide">{% if encours.en_differe %}<span class="pastille-alerte">{% translate "différé" %}</span> {% endif %}{% blocktranslate with assurance=pret.assurance_mensuelle|euros %}dont {{ assurance }} d'assurance{% endblocktranslate %}</p>
+  </div>
+  <div class="carte">
+    <p class="libelle-indicateur">{% translate "Mensualité hors différé" %}</p>
+    <p class="indicateur">{{ tableau.mensualite_amortissement|euros }}</p>
+    <p class="aide">{% translate "hors assurance" %}</p>
+  </div>
+  <div class="carte">
+    <p class="libelle-indicateur">{% translate "Intérêts restant à payer" %}</p>
+    <p class="indicateur">{{ encours.interets_restants|euros }}</p>
+  </div>
+  <div class="carte">
+    <p class="libelle-indicateur">{% translate "Coût total du crédit" %}</p>
+    <p class="indicateur">{{ tableau.cout_total|euros }}</p>
+    <p class="aide">{% blocktranslate with interets=tableau.total_interets|euros assurance=tableau.total_assurance|euros %}{{ interets }} d'intérêts, {{ assurance }} d'assurance{% endblocktranslate %}</p>
+  </div>
+</section>
+
+<div class="grid items-start gap-6 lg:grid-cols-2">
+  <section class="carte space-y-4" aria-labelledby="titre-simulation">
+    <div>
+      <h2 id="titre-simulation">{% translate "Simuler un remboursement anticipé" %}</h2>
+      <p class="aide mt-1">{% translate "Rien n'est enregistré. Hors indemnités de remboursement anticipé (souvent 3 % du montant au plus) : voyez votre offre de prêt." %}</p>
+    </div>
+    <form method="get" class="grid gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(12rem,1.4fr)] sm:items-start">
+      {% for champ in formulaire_simulation %}{% include "composants/champ.html" %}{% endfor %}
+      <button class="bouton-secondaire sm:col-span-3 sm:justify-self-start">{% translate "Simuler" %}</button>
+    </form>
+    {% if simulation %}
+    <div class="space-y-3 rounded-2xl bg-succes-doux p-4 ring-1 ring-succes/20" role="status">
+      <p class="text-sm text-texte-discret">{% translate "Économie d'intérêts" %}</p>
+      <p class="indicateur mt-0 text-succes">{{ simulation.economie_interets|euros }}</p>
+      <dl class="grid grid-cols-2 gap-3 text-sm">
+        {% if simulation.mois_gagnes %}
+        <div><dt class="text-texte-discret">{% translate "Durée" %}</dt><dd class="font-medium">{% blocktranslate count n=simulation.mois_gagnes %}{{ n }} mois de moins{% plural %}{{ n }} mois de moins{% endblocktranslate %}</dd></div>
+        <div><dt class="text-texte-discret">{% translate "Nouvelle fin" %}</dt><dd class="font-medium">{{ simulation.apres.date_fin|date:"F Y"|capfirst }}</dd></div>
+        {% else %}
+        <div><dt class="text-texte-discret">{% translate "Mensualité" %}</dt><dd class="font-medium tabular-nums">{{ simulation.mensualite_avant|euros }} → {{ simulation.mensualite_apres|euros }}</dd></div>
+        {% endif %}
+        <div><dt class="text-texte-discret">{% translate "Assurance économisée" %}</dt><dd class="font-medium tabular-nums">{{ simulation.economie_assurance|euros }}</dd></div>
+      </dl>
+      {% if peut_modifier %}
+      <form method="post" action="{% url 'prets:ajouter_anticipe' pret.pk %}">
+        {% csrf_token %}
+        <input type="hidden" name="date" value="{{ formulaire_simulation.cleaned_data.date|date:'Y-m-d' }}">
+        <input type="hidden" name="montant" value="{{ formulaire_simulation.cleaned_data.montant|nombre_brut }}">
+        <input type="hidden" name="effet" value="{{ formulaire_simulation.cleaned_data.effet }}">
+        <button class="bouton-secondaire">{% translate "J'ai fait ce remboursement : l'enregistrer" %}</button>
+      </form>
+      {% endif %}
+    </div>
+    {% endif %}
+  </section>
+
+  <section class="carte space-y-3" aria-labelledby="titre-anticipes">
+    <h2 id="titre-anticipes">{% translate "Remboursements anticipés effectués" %}</h2>
+    {% if tableau.anticipes %}
+    <ul class="liste text-sm">
+      {% for remboursement in pret.remboursements.all %}
+      <li class="ligne">
+        <span><span class="font-medium tabular-nums">{{ remboursement.montant|euros }}</span> <span class="text-texte-discret">· {{ remboursement.date|date:"j F Y" }} · {{ remboursement.get_effet_display|lower }}</span></span>
+        {% if peut_modifier %}
+        <form method="post" action="{% url 'prets:supprimer_anticipe' remboursement.pk %}">
+          {% csrf_token %}
+          <button class="bouton-discret bouton-icone hover:text-danger" aria-label="{% translate 'Supprimer ce remboursement' %}">{% icone "supprimer" classe="size-4" %}</button>
+        </form>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-sm text-texte-discret">{% translate "Aucun pour l'instant. Une simulation peut être enregistrée une fois le remboursement fait." %}</p>
+    {% endif %}
+  </section>
+</div>
+
+<section class="space-y-3" aria-labelledby="titre-tableau">
+  <h2 id="titre-tableau">{% translate "Tableau d'amortissement" %}</h2>
+  <div class="carte divide-y divide-bordure p-0">
+    {% for annee in annees %}
+    <details {% if annee.en_cours %}open{% endif %}>
+      <summary class="flex cursor-pointer flex-wrap items-center justify-between gap-x-6 gap-y-1 px-5 py-3 text-sm hover:bg-surface-2">
+        <span class="font-semibold">{{ annee.annee }}</span>
+        <span class="flex flex-wrap gap-x-6 gap-y-1 text-texte-discret">
+          <span>{% translate "intérêts" %} <strong class="font-medium text-texte tabular-nums">{{ annee.interets|euros }}</strong></span>
+          <span>{% translate "capital" %} <strong class="font-medium text-texte tabular-nums">{{ annee.amortissement|euros }}</strong></span>
+          <span>{% translate "reste dû" %} <strong class="font-medium text-texte tabular-nums">{{ annee.capital_fin|euros }}</strong></span>
+        </span>
+      </summary>
+      <div class="overflow-x-auto border-t border-bordure">
+        <table class="tableau">
+          <thead>
+            <tr>
+              <th>{% translate "N°" %}</th><th>{% translate "Date" %}</th>
+              <th class="text-right">{% translate "Échéance" %}</th><th class="text-right">{% translate "Intérêts" %}</th>
+              <th class="text-right">{% translate "Capital" %}</th><th class="text-right">{% translate "Assurance" %}</th>
+              <th class="text-right">{% translate "Reste dû" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for echeance in annee.echeances %}
+            <tr>
+              <td class="text-texte-discret tabular-nums">{{ echeance.numero }}</td>
+              <td class="whitespace-nowrap">{{ echeance.date|date:"j M Y" }}{% if echeance.en_differe %} <span class="pastille-neutre">{% translate "différé" %}</span>{% endif %}{% if echeance.anticipe %} <span class="pastille">{% blocktranslate with montant=echeance.anticipe|euros %}+ {{ montant }} anticipé{% endblocktranslate %}</span>{% endif %}</td>
+              <td class="montant font-medium">{{ echeance.total|euros }}</td>
+              <td class="montant">{{ echeance.interets|euros }}</td>
+              <td class="montant">{{ echeance.amortissement|euros }}</td>
+              <td class="montant">{{ echeance.assurance|euros_ou_vide }}</td>
+              <td class="montant">{{ echeance.capital_fin|euros }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

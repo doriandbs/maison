@@ -33,5 +33,6 @@ urlpatterns = [
     path("", include("apps.banque.urls")),
     path("", include("apps.budget.urls")),
     path("", include("apps.documents.urls")),
+    path("", include("apps.prets.urls")),
     path(settings.ADMIN_CHEMIN, admin.site.urls),
 ]

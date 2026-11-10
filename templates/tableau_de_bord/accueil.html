@@ -29,11 +29,13 @@
 <section class="carte-vedette" aria-label="{% translate 'Patrimoine' %}">
   <div class="grid gap-8 md:grid-cols-[1.4fr_1fr] md:items-end">
     <div>
-      <p class="text-sm font-medium text-white/75">{% translate "Patrimoine" %}</p>
-      <p class="mt-1 text-4xl font-semibold tracking-tight tabular-nums sm:text-5xl" data-compteur="{{ synthese.patrimoine|valeur_brute }}">{{ synthese.patrimoine|euros }}</p>
+      <p class="text-sm font-medium text-white/75">{% if synthese.a_des_credits %}{% translate "Patrimoine net" %}{% else %}{% translate "Patrimoine" %}{% endif %}</p>
+      <p class="mt-1 text-4xl font-semibold tracking-tight tabular-nums sm:text-5xl" data-compteur="{{ synthese.patrimoine_net|valeur_brute }}">{{ synthese.patrimoine_net|euros }}</p>
       <dl class="mt-5 flex flex-wrap gap-x-8 gap-y-3 text-sm">
         <div><dt class="text-white/70">{% translate "Disponible" %}</dt><dd class="text-lg font-semibold tabular-nums">{{ synthese.disponible|euros }}</dd></div>
         <div><dt class="text-white/70">{% translate "Épargne et placements" %}</dt><dd class="text-lg font-semibold tabular-nums">{{ synthese.epargne|euros }}</dd></div>
+        {% if synthese.biens %}<div><dt class="text-white/70">{% translate "Biens" %}</dt><dd class="text-lg font-semibold tabular-nums">{{ synthese.biens|euros }}</dd></div>{% endif %}
+        {% if synthese.dettes %}<div><dt class="text-white/70"><a class="text-white/70" href="{% url 'prets:liste' %}">{% translate "Crédits" %}</a></dt><dd class="text-lg font-semibold tabular-nums">−{{ synthese.dettes|euros }}</dd></div>{% endif %}
       </dl>
     </div>
     <div class="rounded-2xl bg-white/10 p-4 ring-1 ring-white/15 backdrop-blur-sm">

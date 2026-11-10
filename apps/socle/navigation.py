@@ -24,6 +24,7 @@ ENTREES = (
     Entree("comptes", "banque:comptes", _("Comptes"), "comptes", onglet=True),
     Entree("operations", "banque:operations", _("Opérations"), "operations", onglet=True),
     Entree("budget", "budget:courant", _("Budget"), "budget", onglet=True),
+    Entree("prets", "prets:liste", _("Crédits"), "credits"),
     Entree("documents", "documents:liste", _("Documents"), "documents"),
     Entree("categories", "banque:categories", _("Catégories"), "categories"),
     Entree("membres", "foyers:membres", _("Membres"), "membres"),

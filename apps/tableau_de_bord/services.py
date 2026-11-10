@@ -13,6 +13,7 @@ from apps.banque.services.soldes import soldes_des_comptes
 from apps.budget.services.tableau import LigneCategorie, TableauMensuel, tableau_mensuel
 from apps.documents.models import Document
 from apps.foyers.models import Foyer
+from apps.prets.services.encours import encours_du_foyer, total_biens, total_dettes
 
 ZERO = Decimal("0.00")
 NOMBRE_FACTURES = 5
@@ -80,6 +81,8 @@ class Synthese:
     nombre_factures: int
     montant_factures: Decimal
     dernieres_operations: list[Operation]
+    dettes: Decimal = ZERO  # capital restant dû des crédits
+    biens: Decimal = ZERO  # valeur estimée des biens financés par ces crédits
 
     @property
     def disponible(self) -> Decimal:
@@ -99,7 +102,16 @@ class Synthese:
 
     @property
     def patrimoine(self) -> Decimal:
+        """Avoirs financiers : comptes courants, épargne et placements."""
         return self.disponible + self.epargne
+
+    @property
+    def patrimoine_net(self) -> Decimal:
+        return self.patrimoine + self.biens - self.dettes
+
+    @property
+    def a_des_credits(self) -> bool:
+        return bool(self.dettes or self.biens)
 
     @property
     def alertes(self) -> list[LigneCategorie]:
@@ -129,8 +141,11 @@ def synthese(foyer: Foyer, aujourd_hui: date | None = None) -> Synthese:
     # Les plus urgentes d'abord ; une facture sans échéance passe après les autres.
     factures = a_payer.order_by(F("echeance").asc(nulls_last=True), "date")[:NOMBRE_FACTURES]
     montant_factures = sum((d.montant or ZERO for d in a_payer.only("montant")), ZERO)
+    credits = encours_du_foyer(foyer, aujourd_hui)
 
     return Synthese(
+        dettes=total_dettes(credits),
+        biens=total_biens(credits),
         aujourd_hui=aujourd_hui,
         comptes=comptes,
         mois=tableau_mensuel(foyer, aujourd_hui.year, aujourd_hui.month),

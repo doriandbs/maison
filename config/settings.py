@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     "apps.banque",
     "apps.budget",
     "apps.documents",
+    "apps.prets",
     "apps.tableau_de_bord",
 ]
 

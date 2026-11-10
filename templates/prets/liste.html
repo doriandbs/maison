@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% load i18n formats icones %}
+{% block titre %}{% translate "Crédits" %}{% endblock %}
+{% block contenu %}
+<div class="en-tete">
+  <h1>{% translate "Crédits" %}</h1>
+  {% if peut_modifier %}<a class="bouton-primaire" href="{% url 'prets:ajouter' %}">{% icone "plus" classe="size-4" %}{% translate "Ajouter un crédit" %}</a>{% endif %}
+</div>
+
+{% if encours %}
+<section class="grid grid-cols-2 gap-3 sm:gap-4" aria-label="{% translate 'Total' %}">
+  <div class="carte">
+    <p class="libelle-indicateur">{% translate "Capital restant dû" %}</p>
+    <p class="indicateur" data-compteur="{{ total_du|valeur_brute }}">{{ total_du|euros }}</p>
+  </div>
+  <div class="carte">
+    <p class="libelle-indicateur">{% translate "Prochaines échéances" %}</p>
+    <p class="indicateur">{{ total_mensualites|euros }}</p>
+    <p class="aide">{% translate "assurance comprise" %}</p>
+  </div>
+</section>
+
+<div class="grid items-start gap-6 lg:grid-cols-2">
+  {% for element in encours %}
+  <a class="carte carte-survol block space-y-4 text-texte no-underline hover:no-underline" href="{% url 'prets:pret' element.pret.pk %}">
+    <div class="flex items-start justify-between gap-3">
+      <div class="min-w-0">
+        <h2 class="truncate">{{ element.pret.nom }}</h2>
+        <p class="text-xs text-texte-discret">{{ element.pret.etablissement|default:"" }}{% if element.pret.etablissement %} · {% endif %}{{ element.pret.taux_annuel|floatformat:"-3" }} %</p>
+      </div>
+      {% if element.en_differe %}<span class="pastille-alerte">{% translate "différé" %}</span>{% endif %}
+    </div>
+    <div>
+      <p class="libelle-indicateur">{% translate "Reste à rembourser" %}</p>
+      <p class="indicateur">{{ element.capital_restant_du|euros }}</p>
+      <span class="jauge" aria-hidden="true"><span style="--part: {{ element.part_remboursee|nombre_brut }}%"></span></span>
+      <p class="aide">{% blocktranslate with part=element.part_remboursee|floatformat:0 capital=element.pret.capital|euros %}{{ part }} % de {{ capital }} remboursés{% endblocktranslate %}</p>
+    </div>
+    <dl class="grid grid-cols-2 gap-3 border-t border-bordure pt-4 text-sm">
+      <div><dt class="text-texte-discret">{% translate "Prochaine échéance" %}</dt><dd class="font-medium tabular-nums">{{ element.prochaine_echeance.total|euros }}</dd></div>
+      <div><dt class="text-texte-discret">{% translate "Fin" %}</dt><dd class="font-medium">{{ element.tableau.date_fin|date:"F Y"|capfirst }}</dd></div>
+    </dl>
+  </a>
+  {% endfor %}
+</div>
+{% elif not termines %}
+<div class="carte grid place-items-center gap-4 px-6 py-14 text-center">
+  <span class="logo-marque size-14 rounded-2xl">{% icone "credits" classe="size-7" %}</span>
+  <div class="max-w-md space-y-2">
+    <h2 class="text-lg">{% translate "Suivez vos crédits" %}</h2>
+    <p class="text-texte-discret">{% translate "Avec le montant, le taux, la durée et la date de la première échéance, Maison calcule le tableau d'amortissement, le capital restant dû et l'effet d'un remboursement anticipé." %}</p>
+  </div>
+  {% if peut_modifier %}<a class="bouton-primaire" href="{% url 'prets:ajouter' %}">{% icone "plus" classe="size-4" %}{% translate "Ajouter un crédit" %}</a>{% endif %}
+</div>
+{% endif %}
+
+{% if termines %}
+<details class="carte">
+  <summary class="cursor-pointer font-medium">{% translate "Crédits remboursés" %} ({{ termines|length }})</summary>
+  <ul class="liste mt-3">
+    {% for element in termines %}
+    <li class="ligne"><a href="{% url 'prets:pret' element.pret.pk %}">{{ element.pret.nom }}</a><span class="text-sm text-texte-discret">{{ element.tableau.date_fin|date:"F Y" }}</span></li>
+    {% endfor %}
+  </ul>
+</details>
+{% endif %}
+{% endblock %}
