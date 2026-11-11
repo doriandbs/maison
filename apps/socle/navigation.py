@@ -17,6 +17,8 @@ class Entree:
     icone: str
     # Affichée dans la barre d'onglets du téléphone (les autres vont dans « Plus »).
     onglet: bool = False
+    # « foyer » : n'a de sens que dans un foyer partagé (documents, membres).
+    portee: str = "finances"
 
 
 ENTREES = (
@@ -25,9 +27,9 @@ ENTREES = (
     Entree("operations", "banque:operations", _("Opérations"), "operations", onglet=True),
     Entree("budget", "budget:courant", _("Budget"), "budget", onglet=True),
     Entree("prets", "prets:liste", _("Crédits"), "credits"),
-    Entree("documents", "documents:liste", _("Documents"), "documents"),
+    Entree("documents", "documents:liste", _("Documents"), "documents", portee="foyer"),
     Entree("categories", "banque:categories", _("Catégories"), "categories"),
-    Entree("membres", "foyers:membres", _("Membres"), "membres"),
+    Entree("membres", "foyers:membres", _("Membres"), "membres", portee="foyer"),
 )
 
 
@@ -61,5 +63,6 @@ def navigation(request: HttpRequest) -> dict[str, Any]:
                 "actif": entree.section == section,
             }
             for entree in ENTREES
+            if entree.portee == "finances" or getattr(request, "adhesion_foyer", None)
         ],
     }

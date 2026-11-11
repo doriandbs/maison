@@ -192,12 +192,15 @@ class TestRoles:
 
 
 class TestParcours:
-    def test_sans_foyer_on_est_envoye_vers_mes_foyers(self, client):
-        client.force_login(FabriqueUtilisateur())
+    def test_sans_foyer_on_arrive_sur_ses_finances(self, client):
+        alice = FabriqueUtilisateur()
+        client.force_login(alice)
 
         reponse = client.get(reverse("accueil"))
 
-        assert reponse["Location"] == reverse("foyers:liste")
+        assert reponse.status_code == 200
+        assert reponse.context["adhesion_espace"].foyer.personne == alice
+        assert reponse.context["adhesion_foyer"] is None
 
     def test_creer_un_foyer_l_ouvre_aussitot(self, client):
         alice = FabriqueUtilisateur()
@@ -205,9 +208,9 @@ class TestParcours:
 
         reponse = client.post(reverse("foyers:creer"), {"nom": "Maison"}, follow=True)
 
-        foyer = Foyer.objects.get()
+        foyer = Foyer.objects.get(personne__isnull=True)
         assert client.session[CLE_SESSION_FOYER] == foyer.pk
-        assert reponse.context["adhesion_courante"].foyer == foyer
+        assert reponse.context["adhesion_foyer"].foyer == foyer
 
     def test_le_foyer_principal_s_ouvre_par_defaut(self, client):
         alice = FabriqueUtilisateur()
@@ -217,7 +220,7 @@ class TestParcours:
 
         reponse = client.get(reverse("accueil"))
 
-        assert reponse.context["adhesion_courante"] == principale
+        assert reponse.context["adhesion_foyer"] == principale
 
     def test_changer_de_foyer_courant_et_de_foyer_principal(self, client):
         alice = FabriqueUtilisateur()
@@ -226,7 +229,7 @@ class TestParcours:
         client.force_login(alice)
 
         client.post(reverse("foyers:activer", args=[annexe.foyer_id]))
-        assert client.get(reverse("accueil")).context["adhesion_courante"] == annexe
+        assert client.get(reverse("accueil")).context["adhesion_foyer"] == annexe
 
         client.post(reverse("foyers:principal", args=[annexe.foyer_id]))
         principale.refresh_from_db()
@@ -247,7 +250,7 @@ class TestParcours:
         assert "Rejoindre le foyer" in client.get(lien).content.decode()
         client.post(lien)
 
-        adhesion = Adhesion.objects.get(utilisateur=dora)
+        adhesion = Adhesion.objects.get(utilisateur=dora, foyer__personne__isnull=True)
         assert (adhesion.foyer, adhesion.role) == (admin.foyer, Role.LECTEUR)
         assert client.session[CLE_SESSION_FOYER] == admin.foyer_id
 

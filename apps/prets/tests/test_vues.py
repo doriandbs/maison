@@ -6,7 +6,7 @@ from django.urls import reverse
 
 from apps.banque.tests.fabriques import FabriqueCompte
 from apps.foyers.models import Role
-from apps.foyers.tests.fabriques import FabriqueAdhesion
+from apps.foyers.tests.fabriques import acces_a, espace_de, voir_espace
 from apps.prets.models import Pret, RemboursementAnticipe
 from apps.prets.services.encours import encours_du_foyer, total_biens, total_dettes
 from apps.tableau_de_bord.services import synthese
@@ -18,7 +18,7 @@ pytestmark = pytest.mark.django_db
 
 @pytest.fixture
 def alice(client):
-    adhesion = FabriqueAdhesion(role=Role.MEMBRE, est_principal=True)
+    adhesion = espace_de()
     client.force_login(adhesion.utilisateur)
     return adhesion
 
@@ -192,9 +192,11 @@ class TestIsolation:
         assert not Pret.objects.exists()
 
     def test_un_lecteur_consulte_sans_modifier(self, client):
-        lecteur = FabriqueAdhesion(role=Role.LECTEUR)
-        pret = FabriquePret(foyer=lecteur.foyer)
+        proprietaire = espace_de()
+        lecteur = acces_a(proprietaire, Role.LECTEUR)
+        pret = FabriquePret(foyer=proprietaire.foyer)
         client.force_login(lecteur.utilisateur)
+        voir_espace(client, proprietaire)
 
         assert client.get(reverse("prets:pret", args=[pret.pk])).status_code == 200
         assert client.post(reverse("prets:ajouter"), DONNEES).status_code == 403

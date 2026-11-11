@@ -20,7 +20,7 @@ from apps.banque.services import importation, regles
 from apps.banque.services.importation import Statut
 from apps.banque.services.soldes import soldes_des_comptes
 from apps.foyers.models import Role
-from apps.foyers.tests.fabriques import FabriqueAdhesion
+from apps.foyers.tests.fabriques import acces_a, espace_de, voir_espace
 
 from .fabriques import FabriqueCompte, FabriqueOperation, FabriqueSousCategorie
 
@@ -424,7 +424,7 @@ class TestRegles:
 
 @pytest.fixture
 def alice(client):
-    adhesion = FabriqueAdhesion(role=Role.MEMBRE, est_principal=True)
+    adhesion = espace_de()
     client.force_login(adhesion.utilisateur)
     return adhesion
 
@@ -525,9 +525,11 @@ class TestIsolationImport:
         assert client.get(reverse("banque:apercu_import")).url == reverse("banque:importer")
 
     def test_un_lecteur_ne_peut_pas_importer(self, client):
-        lecteur = FabriqueAdhesion(role=Role.LECTEUR)
-        compte = FabriqueCompte(foyer=lecteur.foyer)
+        proprietaire = espace_de()
+        lecteur = acces_a(proprietaire, Role.LECTEUR)
+        compte = FabriqueCompte(foyer=proprietaire.foyer)
         client.force_login(lecteur.utilisateur)
+        voir_espace(client, proprietaire)
 
         assert _deposer(client, compte, csv_sg(CARTE)).status_code == 403
         assert client.post(reverse("banque:apercu_import"), {}).status_code == 403

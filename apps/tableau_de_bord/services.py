@@ -130,14 +130,21 @@ class Synthese:
         return f"conic-gradient({arcs})"
 
 
-def synthese(foyer: Foyer, aujourd_hui: date | None = None) -> Synthese:
+def synthese(
+    foyer: Foyer, aujourd_hui: date | None = None, foyer_documents: Foyer | None = None
+) -> Synthese:
+    """Finances de l'espace `foyer` ; factures à payer du foyer partagé `foyer_documents`."""
     aujourd_hui = aujourd_hui or date.today()
     soldes = soldes_des_comptes(foyer, aujourd_hui)
     comptes = [
         SoldeCompte(compte, soldes[compte.pk]) for compte in Compte.objects.du_foyer(foyer).actifs()
     ]
 
-    a_payer = Document.objects.du_foyer(foyer).a_payer()
+    a_payer = (
+        Document.objects.du_foyer(foyer_documents).a_payer()
+        if foyer_documents is not None
+        else Document.objects.none()
+    )
     # Les plus urgentes d'abord ; une facture sans échéance passe après les autres.
     factures = a_payer.order_by(F("echeance").asc(nulls_last=True), "date")[:NOMBRE_FACTURES]
     montant_factures = sum((d.montant or ZERO for d in a_payer.only("montant")), ZERO)

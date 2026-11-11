@@ -9,7 +9,7 @@ from django.utils import timezone
 from apps.banque.models import Categorie, Compte, Operation, ReleveSolde, TypeCompte
 from apps.banque.services.operations import creer_virement
 from apps.foyers.models import Role
-from apps.foyers.tests.fabriques import FabriqueAdhesion
+from apps.foyers.tests.fabriques import acces_a, espace_de, voir_espace
 
 from .fabriques import (
     FabriqueCategorie,
@@ -25,7 +25,7 @@ pytestmark = pytest.mark.django_db
 @pytest.fixture
 def alice(client):
     """Membre du foyer A, connectée."""
-    adhesion = FabriqueAdhesion(role=Role.MEMBRE, est_principal=True)
+    adhesion = espace_de()
     client.force_login(adhesion.utilisateur)
     return adhesion
 
@@ -152,14 +152,16 @@ ROUTES_D_ECRITURE = [
 class TestLectureSeule:
     @pytest.mark.parametrize(("route", "objet"), ROUTES_D_ECRITURE)
     def test_un_lecteur_ne_peut_rien_modifier(self, client, route, objet):
-        lecteur = FabriqueAdhesion(role=Role.LECTEUR)
-        compte = FabriqueCompte(foyer=lecteur.foyer)
+        proprietaire = espace_de()
+        lecteur = acces_a(proprietaire, Role.LECTEUR)
+        compte = FabriqueCompte(foyer=proprietaire.foyer)
         objets = {
             "compte": compte,
             "operation": FabriqueOperation(compte=compte),
-            "sous_categorie": FabriqueSousCategorie(parent__foyer=lecteur.foyer),
+            "sous_categorie": FabriqueSousCategorie(parent__foyer=proprietaire.foyer),
         }
         client.force_login(lecteur.utilisateur)
+        voir_espace(client, proprietaire)
         arguments = [objets[objet].pk] if objet else []
 
         reponse = client.post(reverse(route, args=arguments), {})
@@ -167,9 +169,11 @@ class TestLectureSeule:
         assert reponse.status_code == 403
 
     def test_un_lecteur_consulte_sans_voir_les_boutons_d_action(self, client):
-        lecteur = FabriqueAdhesion(role=Role.LECTEUR)
-        FabriqueOperation(compte=FabriqueCompte(foyer=lecteur.foyer, nom="Courant"))
+        proprietaire = espace_de()
+        lecteur = acces_a(proprietaire, Role.LECTEUR)
+        FabriqueOperation(compte=FabriqueCompte(foyer=proprietaire.foyer, nom="Courant"))
         client.force_login(lecteur.utilisateur)
+        voir_espace(client, proprietaire)
 
         comptes = client.get(reverse("banque:comptes")).content.decode()
         operations = client.get(reverse("banque:operations")).content.decode()

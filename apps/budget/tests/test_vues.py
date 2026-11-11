@@ -7,8 +7,8 @@ from django.urls import reverse
 from apps.banque.tests.fabriques import FabriqueSousCategorie
 from apps.budget.models import LigneBudget
 from apps.budget.services.previsionnel import budgets_du_mois
-from apps.foyers.models import Role
-from apps.foyers.tests.fabriques import FabriqueAdhesion
+from apps.foyers.models import Adhesion, Role
+from apps.foyers.tests.fabriques import acces_a, espace_de, voir_espace
 
 from .fabriques import FabriqueLigneBudget
 
@@ -19,7 +19,8 @@ D = Decimal
 
 @pytest.fixture
 def membre(client, mars):
-    adhesion = FabriqueAdhesion(foyer=mars.foyer, role=Role.MEMBRE, est_principal=True)
+    """Le titulaire de l'espace où se trouvent les données de mars."""
+    adhesion = Adhesion.objects.get(foyer=mars.foyer, utilisateur=mars.foyer.personne)
     client.force_login(adhesion.utilisateur)
     return adhesion
 
@@ -63,7 +64,7 @@ class TestTableauMensuel:
         assert client.get(reverse("budget:previsionnel", args=[annee, mois])).status_code == 404
 
     def test_les_donnees_d_un_autre_foyer_n_apparaissent_pas(self, client, mars):
-        etranger = FabriqueAdhesion(role=Role.MEMBRE)
+        etranger = espace_de()  # son propre espace, vide
         client.force_login(etranger.utilisateur)
 
         reponse = client.get(reverse("budget:mois", args=[2026, 3]))
@@ -85,7 +86,7 @@ class TestRecapAnnuel:
         assert client.get(reverse("budget:annee", args=[1999])).status_code == 404
 
     def test_les_donnees_d_un_autre_foyer_n_apparaissent_pas(self, client, mars):
-        client.force_login(FabriqueAdhesion(role=Role.MEMBRE).utilisateur)
+        client.force_login(espace_de().utilisateur)
 
         reponse = client.get(reverse("budget:annee", args=[2026]))
 
@@ -148,8 +149,10 @@ class TestPrevisionnel:
         assert not LigneBudget.objects.exists()
 
     def test_un_lecteur_ne_peut_pas_modifier_le_previsionnel(self, client, mars):
-        lecteur = FabriqueAdhesion(foyer=mars.foyer, role=Role.LECTEUR)
+        proprietaire = Adhesion.objects.get(foyer=mars.foyer, utilisateur=mars.foyer.personne)
+        lecteur = acces_a(proprietaire, Role.LECTEUR)
         client.force_login(lecteur.utilisateur)
+        voir_espace(client, proprietaire)
 
         reponse = client.post(
             reverse("budget:previsionnel", args=[2026, 3]),

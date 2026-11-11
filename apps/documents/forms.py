@@ -2,7 +2,6 @@ from typing import Any
 
 from django import forms
 from django.core.files.uploadedfile import UploadedFile
-from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
 from apps.banque.forms import ChampDate
@@ -37,12 +36,11 @@ class FormulaireDocument(FormulaireDeFoyer):
             "montant",
             "echeance",
             "paye_le",
-            "categorie",
-            "compte",
-            "operation",
             "note",
         )
-        widgets = {"note": forms.Textarea(attrs={"rows": 2}), "operation": forms.HiddenInput}
+        # Les documents appartiennent au foyer et ne sont reliés à aucun compte ni opération :
+        # les finances sont personnelles (ADR 0006).
+        widgets = {"note": forms.Textarea(attrs={"rows": 2})}
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
@@ -53,17 +51,6 @@ class FormulaireDocument(FormulaireDeFoyer):
             self.fields["fichier"].help_text = _(
                 "Actuel : %(nom)s. Choisissez un fichier seulement pour le remplacer."
             ) % {"nom": self.instance.nom_fichier}
-        comptes = self.fields["compte"]
-        comptes.queryset = comptes.queryset.filter(  # type: ignore[attr-defined]
-            Q(archive_le__isnull=True) | Q(pk=self.instance.compte_id)
-        )
-        categories = self.fields["categorie"]
-        categories.queryset = (  # type: ignore[attr-defined]
-            categories.queryset.filter(parent__isnull=False)  # type: ignore[attr-defined]
-            .filter(Q(archive_le__isnull=True) | Q(pk=self.instance.categorie_id))
-            .select_related("parent")
-            .order_by("parent__nom", "nom")
-        )
 
     def clean_fichier(self) -> UploadedFile | None:
         fichier = self.cleaned_data.get("fichier")

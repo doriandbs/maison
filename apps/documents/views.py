@@ -11,7 +11,6 @@ from django.utils.translation import gettext_lazy
 from django.views import View
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
-from apps.banque.models import Operation
 from apps.foyers.acces import AccesFoyerMixin, VueDeFoyerMixin, VueFormulaireDeFoyerMixin
 from apps.socle.models import RequeteDeFoyer
 from apps.socle.views import PageFormulaireMixin
@@ -22,6 +21,7 @@ from .models import Document, TypeDocument
 
 
 class VueDocuments(VueDeFoyerMixin, ListView):
+    portee = "foyer"
     model = Document
     template_name = "documents/liste.html"
     context_object_name = "documents"
@@ -51,6 +51,7 @@ class VueDocuments(VueDeFoyerMixin, ListView):
 
 
 class VueDocument(VueDeFoyerMixin, DetailView):
+    portee = "foyer"
     model = Document
     template_name = "documents/document.html"
     context_object_name = "document"
@@ -62,31 +63,14 @@ class VueDocument(VueDeFoyerMixin, DetailView):
 class VueAjouterDocument(
     PageFormulaireMixin, VueFormulaireDeFoyerMixin, VueDeFoyerMixin, CreateView
 ):
+    portee = "foyer"
     model = Document
     form_class = FormulaireDocument
     titre = gettext_lazy("Ajouter un document")
     url_retour = reverse_lazy("documents:liste")
 
     def get_initial(self) -> dict[str, Any]:
-        initial: dict[str, Any] = {"date": date.today()}
-        identifiant = self.request.GET.get("operation", "")
-        # Pré-remplissage depuis une opération : seulement si elle est du foyer courant.
-        operation = (
-            Operation.objects.du_foyer(self.foyer).filter(pk=identifiant).first()
-            if identifiant.isdigit()
-            else None
-        )
-        if operation is not None:
-            initial |= {
-                "operation": operation.pk,
-                "compte": operation.compte_id,
-                "categorie": operation.categorie_id,
-                "date": operation.date,
-                "titre": operation.libelle,
-                "montant": abs(operation.montant),
-                "paye_le": operation.date if operation.montant < 0 else None,
-            }
-        return initial
+        return {"date": date.today()}
 
     def form_valid(self, form: FormulaireDocument) -> HttpResponse:  # type: ignore[override]
         form.instance.cree_par = self.request.user
@@ -103,6 +87,7 @@ class VueAjouterDocument(
 class VueModifierDocument(
     PageFormulaireMixin, VueFormulaireDeFoyerMixin, VueDeFoyerMixin, UpdateView
 ):
+    portee = "foyer"
     model = Document
     form_class = FormulaireDocument
     titre = gettext_lazy("Modifier le document")
@@ -112,6 +97,7 @@ class VueModifierDocument(
 
 
 class VueSupprimerDocument(VueDeFoyerMixin, DeleteView):
+    portee = "foyer"
     model = Document
     template_name = "composants/page_confirmation.html"
     success_url = reverse_lazy("documents:liste")
@@ -129,6 +115,7 @@ class VueSupprimerDocument(VueDeFoyerMixin, DeleteView):
 
 
 class VueBasculerPaiement(AccesFoyerMixin, View):
+    portee = "foyer"
     """Bascule une facture entre « payée aujourd'hui » et « à payer »."""
 
     def post(self, request: HttpRequest, pk: int) -> HttpResponse:
@@ -143,6 +130,7 @@ class VueBasculerPaiement(AccesFoyerMixin, View):
 
 
 class VueFichierDocument(AccesFoyerMixin, View):
+    portee = "foyer"
     """Seul chemin d'accès aux fichiers : droits vérifiés, puis envoi par Django.
 
     Le type envoyé est celui détecté au dépôt, jamais celui annoncé par le navigateur.

@@ -119,3 +119,4 @@ Ne commence pas la V2 tant que la V1 n'est pas déployable et testée.
 - Pas de Docker, ni en développement ni en production.
 - nginx (déjà présent sur le VPS) à la place de Caddy : voir `docs/adr/0004-nginx-plutot-que-caddy.md`.
 - Double authentification obligatoire pour tous : voir `docs/adr/0005-double-authentification.md`.
+- Finances personnelles (comptes, budget, crédits), foyers partagés pour les documents et l'accès croisé : voir `docs/adr/0006-finances-personnelles.md`.

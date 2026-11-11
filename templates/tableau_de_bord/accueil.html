@@ -5,7 +5,7 @@
 <div class="en-tete">
   <div>
     <p class="surtitre">{{ synthese.aujourd_hui|date:"l j F Y" }}</p>
-    <h1>{{ adhesion_courante.foyer.nom }}</h1>
+    <h1>{% if adhesion_espace.foyer.personne_id == user.pk %}{% translate "Mes finances" %}{% else %}{{ adhesion_espace.foyer.nom }}{% endif %}</h1>
   </div>
   {% if peut_modifier and synthese.comptes %}
   <div class="flex flex-wrap gap-2">

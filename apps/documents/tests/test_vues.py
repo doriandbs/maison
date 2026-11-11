@@ -5,7 +5,6 @@ import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
-from apps.banque.tests.fabriques import FabriqueCompte, FabriqueOperation
 from apps.documents.models import Document, TypeDocument
 from apps.foyers.models import Role
 from apps.foyers.tests.fabriques import FabriqueAdhesion
@@ -78,21 +77,6 @@ class TestIsolationEntreFoyers:
         assert list(reponse.context["documents"]) == []
         assert "Document secret" not in reponse.content.decode()
 
-    def test_lier_l_operation_d_autrui_est_refuse(self, client, alice):
-        operation_b = FabriqueOperation(libelle="Opération secrète")
-
-        reponse = client.post(reverse("documents:ajouter"), _donnees(operation=operation_b.pk))
-
-        assert reponse.status_code == 200
-        assert not Document.objects.exists()
-
-    def test_pre_remplir_depuis_l_operation_d_autrui_ne_revele_rien(self, client, alice):
-        operation_b = FabriqueOperation(libelle="Opération secrète")
-
-        reponse = client.get(reverse("documents:ajouter"), {"operation": operation_b.pk})
-
-        assert "secrète" not in reponse.content.decode()
-
 
 class TestLectureSeule:
     @pytest.mark.parametrize("route", ["documents:ajouter", *ROUTES_SUR_UN_DOCUMENT[1:4]])
@@ -153,26 +137,6 @@ class TestDepot:
         )
 
         assert Document.objects.get().paye_le is None
-
-    def test_justificatif_pre_rempli_depuis_une_operation(self, client, alice):
-        compte = FabriqueCompte(foyer=alice.foyer)
-        operation = FabriqueOperation(compte=compte, libelle="EDF", montant=Decimal("-84.20"))
-
-        formulaire = client.get(reverse("documents:ajouter"), {"operation": operation.pk}).context[
-            "form"
-        ]
-
-        assert formulaire.initial["operation"] == operation.pk
-        assert formulaire.initial["titre"] == "EDF"
-        assert formulaire.initial["montant"] == Decimal("84.20")
-        assert formulaire.initial["paye_le"] == operation.date
-
-    def test_justificatif_lie_a_une_operation(self, client, alice):
-        operation = FabriqueOperation(compte=FabriqueCompte(foyer=alice.foyer))
-
-        client.post(reverse("documents:ajouter"), _donnees(operation=operation.pk))
-
-        assert list(operation.documents.all()) == [Document.objects.get()]
 
 
 class TestModification:

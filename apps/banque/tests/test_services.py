@@ -13,6 +13,7 @@ from apps.banque.services.categories import (
 from apps.banque.services.operations import ErreurVirement, creer_virement, supprimer_operation
 from apps.banque.services.regroupement import regrouper_par_etablissement
 from apps.banque.services.soldes import enregistrer_releve, soldes_des_comptes
+from apps.foyers.espaces import espace_personnel
 from apps.foyers.services import creer_foyer
 from apps.foyers.tests.fabriques import FabriqueFoyer
 from apps.socle.templatetags.formats import euros
@@ -218,8 +219,13 @@ class TestContraintesOperation:
 
 
 class TestCategories:
-    def test_un_nouveau_foyer_recoit_les_categories_par_defaut(self):
+    def test_un_foyer_partage_n_a_pas_de_categories(self):
         foyer = creer_foyer(utilisateur=FabriqueUtilisateur(), nom="Maison")
+
+        assert not Categorie.objects.du_foyer(foyer).exists()
+
+    def test_un_espace_personnel_recoit_les_categories_par_defaut(self):
+        foyer = espace_personnel(FabriqueUtilisateur())
 
         categories = Categorie.objects.du_foyer(foyer)
         parents = categories.filter(parent__isnull=True)

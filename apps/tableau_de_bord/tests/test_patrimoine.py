@@ -7,8 +7,7 @@ from django.urls import reverse
 from apps.banque.tests.fabriques import FabriqueCompte, FabriqueOperation
 from apps.budget.services.comparaison import histogramme_annuel
 from apps.budget.services.recap import recap_annuel
-from apps.foyers.models import Role
-from apps.foyers.tests.fabriques import FabriqueAdhesion, FabriqueFoyer
+from apps.foyers.tests.fabriques import FabriqueFoyer, espace_de
 from apps.prets.tests.fabriques import FabriquePret
 from apps.tableau_de_bord import patrimoine
 
@@ -68,7 +67,7 @@ class TestEvolution:
 class TestEcrans:
     @pytest.fixture
     def membre(self, client):
-        adhesion = FabriqueAdhesion(role=Role.LECTEUR, est_principal=True)
+        adhesion = espace_de()
         client.force_login(adhesion.utilisateur)
         FabriqueCompte(foyer=adhesion.foyer, solde_initial=D("100"), ouvert_le=date(2024, 1, 1))
         return adhesion

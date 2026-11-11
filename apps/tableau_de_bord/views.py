@@ -13,7 +13,10 @@ class VueTableauDeBord(AccesFoyerMixin, TemplateView):
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         contexte = super().get_context_data(**kwargs)
-        resume = synthese(self.foyer)
+        adhesion_foyer = getattr(self.request, "adhesion_foyer", None)
+        resume = synthese(
+            self.foyer, foyer_documents=adhesion_foyer.foyer if adhesion_foyer else None
+        )
         contexte["synthese"] = resume
         periode = self.request.GET.get("periode")
         contexte["periode"] = int(periode) if periode in {"12", "24"} else 12

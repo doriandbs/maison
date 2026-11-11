@@ -17,7 +17,7 @@
   Trois habillages autour d'un même bloc « contenu » (Django n'accepte qu'un bloc de chaque nom) :
   application complète, compte sans foyer, visiteur non connecté.
 {% endcomment %}
-{% if user.is_authenticated and adhesion_courante %}
+{% if user.is_authenticated and adhesion_espace %}
   <div class="lg:grid lg:grid-cols-[17rem_minmax(0,1fr)]">
     <aside class="barre-laterale" aria-label="{% translate 'Menu' %}">
       <a href="{% url 'accueil' %}" class="logo"><span class="logo-marque">{% icone "foyer" %}</span>Maison</a>
@@ -57,7 +57,7 @@
       <a href="{% url 'accueil' %}" class="logo justify-center text-xl"><span class="logo-marque size-10">{% icone "foyer" %}</span>Maison</a>
 {% endif %}
 {% block contenu %}{% endblock %}
-{% if user.is_authenticated and adhesion_courante %}
+{% if user.is_authenticated and adhesion_espace %}
       </main>
     </div>
   </div>

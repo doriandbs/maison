@@ -2,7 +2,7 @@ from typing import Any
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import HttpRequest, HttpResponse
+from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.translation import gettext as _
@@ -14,7 +14,7 @@ from apps.socle.limites import limiter_par_utilisateur
 from . import services
 from .acces import AccesFoyerMixin
 from .forms import FormulaireFoyer, FormulaireInvitation, FormulaireRole, roles_attribuables
-from .middleware import CLE_SESSION_FOYER
+from .middleware import CLE_SESSION_ESPACE, CLE_SESSION_FOYER
 from .models import Adhesion, Invitation, Role
 
 
@@ -39,22 +39,38 @@ class VueCreerFoyer(LoginRequiredMixin, FormView):
 
 
 class VueActiverFoyer(LoginRequiredMixin, View):
-    """Change le foyer courant de la session."""
+    """Change le foyer partagé courant de la session (jamais un espace personnel)."""
 
     def post(self, request: HttpRequest, pk: int) -> HttpResponse:
-        adhesion = get_object_or_404(Adhesion, utilisateur=request.user, foyer_id=pk)
+        adhesion = get_object_or_404(
+            Adhesion, utilisateur=request.user, foyer_id=pk, foyer__personne__isnull=True
+        )
         request.session[CLE_SESSION_FOYER] = adhesion.foyer_id
+        return redirect("accueil")
+
+
+class VueChoisirEspace(LoginRequiredMixin, View):
+    """Affiche les finances d'une personne : soi, ou un membre du foyer courant."""
+
+    def post(self, request: HttpRequest, pk: int) -> HttpResponse:
+        espaces = getattr(request, "espaces", [])
+        if not any(acces.foyer_id == pk for acces in espaces):
+            raise Http404
+        request.session[CLE_SESSION_ESPACE] = pk
         return redirect("accueil")
 
 
 class VueFoyerPrincipal(LoginRequiredMixin, View):
     def post(self, request: HttpRequest, pk: int) -> HttpResponse:
-        adhesion = get_object_or_404(Adhesion, utilisateur=request.user, foyer_id=pk)
+        adhesion = get_object_or_404(
+            Adhesion, utilisateur=request.user, foyer_id=pk, foyer__personne__isnull=True
+        )
         services.definir_foyer_principal(adhesion)
         return redirect("foyers:liste")
 
 
 class VueMembres(AccesFoyerMixin, TemplateView):
+    portee = "foyer"
     template_name = "foyers/membres.html"
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
@@ -81,6 +97,7 @@ class VueMembres(AccesFoyerMixin, TemplateView):
 
 @limiter_par_utilisateur("20/h")
 class VueInviter(AccesFoyerMixin, View):
+    portee = "foyer"
     role_ecriture = Role.ADMINISTRATEUR
 
     def post(self, request: HttpRequest) -> HttpResponse:
@@ -106,6 +123,7 @@ class VueInviter(AccesFoyerMixin, View):
 
 
 class VueRevoquerInvitation(AccesFoyerMixin, View):
+    portee = "foyer"
     role_ecriture = Role.ADMINISTRATEUR
 
     def post(self, request: HttpRequest, pk: int) -> HttpResponse:
@@ -116,6 +134,7 @@ class VueRevoquerInvitation(AccesFoyerMixin, View):
 
 
 class VueChangerRole(AccesFoyerMixin, View):
+    portee = "foyer"
     role_ecriture = Role.ADMINISTRATEUR
 
     def post(self, request: HttpRequest, pk: int) -> HttpResponse:
@@ -136,6 +155,7 @@ class VueChangerRole(AccesFoyerMixin, View):
 
 
 class VueRetirerMembre(AccesFoyerMixin, View):
+    portee = "foyer"
     # Tout membre peut se retirer lui-même ; le service vérifie les autres cas.
     role_ecriture = Role.LECTEUR
 

@@ -38,6 +38,17 @@ class Foyer(ModeleHorodate):
     membres = models.ManyToManyField(
         settings.AUTH_USER_MODEL, through="Adhesion", related_name="foyers"
     )
+    # Renseigné : ce « foyer » est l'espace financier personnel de cette personne
+    # (comptes, budget, crédits…), créé automatiquement et jamais présenté comme un foyer.
+    # Vide : un vrai foyer partagé (membres, documents). Voir docs/adr/0006.
+    personne = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        verbose_name=_("espace personnel de"),
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="espace",
+    )
 
     class Meta:
         verbose_name = _("foyer")
@@ -45,6 +56,10 @@ class Foyer(ModeleHorodate):
 
     def __str__(self) -> str:
         return self.nom
+
+    @property
+    def est_personnel(self) -> bool:
+        return self.personne_id is not None
 
 
 class Adhesion(ModeleDeFoyer):

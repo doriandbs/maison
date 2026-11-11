@@ -13,14 +13,15 @@ from apps.banque.tests.fabriques import (
     FabriqueReleveSolde,
     FabriqueSousCategorie,
 )
-from apps.foyers.tests.fabriques import FabriqueFoyer
+from apps.foyers.tests.fabriques import espace_de
 
 D = Decimal
 
 
 @pytest.fixture
 def foyer():
-    return FabriqueFoyer()
+    """L'espace financier personnel d'une personne (sans catégories par défaut)."""
+    return espace_de().foyer
 
 
 @pytest.fixture

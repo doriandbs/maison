@@ -31,7 +31,7 @@
       {% for operation in operations %}
       <tr>
         <td class="whitespace-nowrap">{{ operation.date|date:"j M Y" }}</td>
-        <td>{{ operation.libelle }}{% for document in operation.documents.all %} <a href="{% url 'documents:document' document.pk %}" class="ml-1 inline-flex align-middle text-texte-discret hover:text-primaire-600" title="{{ document.titre }}" aria-label="{% blocktranslate with titre=document.titre %}Justificatif : {{ titre }}{% endblocktranslate %}">{% icone "trombone" classe="size-4" %}</a>{% endfor %}{% if operation.note %}<div class="text-sm text-texte-discret">{{ operation.note }}</div>{% endif %}</td>
+        <td>{{ operation.libelle }}{% if operation.note %}<div class="text-sm text-texte-discret">{{ operation.note }}</div>{% endif %}</td>
         <td>{{ operation.compte.nom }}</td>
         <td>
           {% if operation.est_virement %}<span class="pastille">{% translate "virement" %}</span>
@@ -44,7 +44,6 @@
           <span class="inline-flex gap-0.5">
             {% if not operation.est_virement %}
             <a class="bouton-discret bouton-icone" href="{% url 'banque:modifier_operation' operation.pk %}" title="{% translate 'Modifier' %}" aria-label="{% blocktranslate with libelle=operation.libelle %}Modifier « {{ libelle }} »{% endblocktranslate %}">{% icone "modifier" classe="size-4" %}</a>
-            <a class="bouton-discret bouton-icone" href="{% url 'documents:ajouter' %}?operation={{ operation.pk }}" title="{% translate 'Ajouter un justificatif' %}" aria-label="{% blocktranslate with libelle=operation.libelle %}Ajouter un justificatif à « {{ libelle }} »{% endblocktranslate %}">{% icone "trombone" classe="size-4" %}</a>
             {% endif %}
             <a class="bouton-discret bouton-icone hover:text-danger" href="{% url 'banque:supprimer_operation' operation.pk %}" title="{% translate 'Supprimer' %}" aria-label="{% blocktranslate with libelle=operation.libelle %}Supprimer « {{ libelle }} »{% endblocktranslate %}">{% icone "supprimer" classe="size-4" %}</a>
           </span>

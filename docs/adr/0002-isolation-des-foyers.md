@@ -53,14 +53,6 @@ C'est le foyer ouvert à la connexion ; les autres sont des foyers annexes.
 - Un foyer peut avoir plusieurs propriétaires (un couple à parts égales). Seul un propriétaire
   peut en inviter ou en nommer un autre ; un administrateur ne le peut pas.
 
-## Déplacer des comptes d'un foyer à un autre
-
-Un compte n'est jamais que dans un foyer : on le **déplace**, on ne le partage pas entre foyers
-(les catégories, le budget et l'isolation restent ceux d'un seul foyer). Il emporte opérations,
-relevés, documents rattachés et crédits qu'il rembourse ; les catégories sont reprises par leur
-nom, les virements internes vers un compte qui reste deviennent des opérations simples.
-Il faut être administrateur du foyer de départ et au moins membre du foyer d'arrivée.
-
 ## Prévu plus tard : visibilité par membre
 
 En V1 tout membre voit tout le foyer. La restriction « ne voit que ses comptes » s'ajoutera par un

@@ -15,7 +15,12 @@ from apps.budget.models import LigneBudget
 from apps.documents.models import TypeDocument
 from apps.documents.tests.fabriques import FabriqueDocument
 from apps.foyers.models import Role
-from apps.foyers.tests.fabriques import FabriqueAdhesion, FabriqueFoyer
+from apps.foyers.tests.fabriques import (
+    FabriqueFoyer,
+    acces_a,
+    espace_de,
+    voir_espace,
+)
 from apps.tableau_de_bord.services import synthese
 
 pytestmark = pytest.mark.django_db
@@ -74,7 +79,9 @@ class TestFactures:
         FabriqueDocument(foyer=foyer, type=TypeDocument.CONTRAT)
         FabriqueDocument(montant=D("1000"))
 
-        resultat = synthese(foyer, AUJOURD_HUI)
+        # Les factures viennent du foyer partagé, pas de l'espace financier affiché.
+        assert synthese(FabriqueFoyer(), AUJOURD_HUI).factures == []
+        resultat = synthese(FabriqueFoyer(), AUJOURD_HUI, foyer_documents=foyer)
 
         assert [f.document for f in resultat.factures] == [en_retard, a_venir, sans_echeance]
         assert [f.en_retard for f in resultat.factures] == [True, False, False]
@@ -110,20 +117,22 @@ class TestBudget:
 
 
 class TestVue:
-    def test_accueil_d_un_membre(self, client):
-        adhesion = FabriqueAdhesion(role=Role.LECTEUR, est_principal=True)
-        FabriqueCompte(foyer=adhesion.foyer, nom="Compte commun")
-        FabriqueDocument(foyer=adhesion.foyer, titre="Facture d'eau")
+    def test_accueil_d_un_membre_qui_regarde_les_finances_d_un_autre(self, client):
+        dorian = espace_de()
+        lectrice = acces_a(dorian, Role.LECTEUR)
+        FabriqueCompte(foyer=dorian.foyer, nom="Compte de Dorian")
+        FabriqueDocument(foyer=lectrice.foyer, titre="Facture d'eau")  # foyer partagé
         FabriqueCompte(nom="Compte d'autrui")
-        client.force_login(adhesion.utilisateur)
+        client.force_login(lectrice.utilisateur)
+        voir_espace(client, dorian)
 
         contenu = client.get(reverse("accueil")).content.decode()
 
-        assert "Compte commun" in contenu and "Facture d" in contenu
+        assert "Compte de Dorian" in contenu and "Facture d" in contenu
         assert "autrui" not in contenu
 
     def test_foyer_vide_invite_a_creer_un_compte(self, client):
-        adhesion = FabriqueAdhesion(role=Role.MEMBRE, est_principal=True)
+        adhesion = espace_de()
         client.force_login(adhesion.utilisateur)
 
         assert "Ajouter un compte" in client.get(reverse("accueil")).content.decode()

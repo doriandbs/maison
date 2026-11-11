@@ -21,6 +21,9 @@ class AccesFoyerMixin(AccessMixin):
 
     role_lecture: str = Role.LECTEUR
     role_ecriture: str = Role.MEMBRE
+    # « finances » : l'espace financier affiché (le sien ou celui d'un membre du foyer).
+    # « foyer » : le foyer partagé courant (documents, membres, invitations).
+    portee: str = "finances"
 
     adhesion: Adhesion
     foyer: Foyer
@@ -28,9 +31,12 @@ class AccesFoyerMixin(AccessMixin):
     def dispatch(self, request: HttpRequest, *args: Any, **kwargs: Any) -> Any:
         if not request.user.is_authenticated:
             return self.handle_no_permission()
-        adhesion: Adhesion | None = getattr(request, "adhesion", None)
+        attribut = "adhesion_foyer" if self.portee == "foyer" else "adhesion"
+        adhesion: Adhesion | None = getattr(request, attribut, None)
         if adhesion is None:
             return redirect("foyers:liste")
+        # Lu par le processeur de contexte : rôle et droits affichés suivent la vue.
+        request.adhesion_active = adhesion  # type: ignore[attr-defined]
         role_requis = (
             self.role_lecture if request.method in METHODES_DE_LECTURE else self.role_ecriture
         )
