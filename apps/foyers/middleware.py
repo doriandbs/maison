@@ -2,11 +2,12 @@ from collections.abc import Callable
 
 from django.http import HttpRequest, HttpResponse
 
+from apps.socle.perimetre import Perimetre
+
 from .espaces import acces_aux_espaces
 from .models import Adhesion
 
 CLE_SESSION_FOYER = "foyer_courant_id"
-CLE_SESSION_ESPACE = "espace_courant_id"
 
 
 def _choisir(adhesions: list[Adhesion], foyer_id: int | None) -> Adhesion | None:
@@ -22,8 +23,9 @@ class IntergicielFoyerCourant:
 
     - `request.adhesions` / `request.adhesion_foyer` : les foyers partagés de l'utilisateur
       et le foyer courant (documents, membres) ;
-    - `request.espaces` / `request.adhesion` : les espaces financiers accessibles (le sien,
-      puis ceux des autres membres du foyer courant) et celui qui est affiché.
+    - `request.espaces` / `request.perimetre` : les espaces financiers réunis à l'écran (le sien,
+      puis ceux des autres membres du foyer courant) et le classement commun du foyer ;
+    - `request.adhesion` : le rôle qui s'applique aux écrans de finances.
 
     Tout est relu en base à chaque requête : un membre retiré d'un foyer perd aussitôt
     l'accès au foyer et aux espaces de ses membres, même si sa session les désigne encore.
@@ -51,7 +53,14 @@ class IntergicielFoyerCourant:
                 adhesion_foyer.foyer if adhesion_foyer else None,
             )
         request.espaces = espaces  # type: ignore[attr-defined]
-        request.adhesion = _choisir(  # type: ignore[attr-defined]
-            espaces, request.session.get(CLE_SESSION_ESPACE)
-        )
+        request.perimetre = None  # type: ignore[attr-defined]
+        request.adhesion = None  # type: ignore[attr-defined]
+        if espaces:
+            # Écrans de finances : tous les espaces du foyer, classés selon le foyer, avec le
+            # rôle qu'on y a. Sans foyer : son espace, dont on est propriétaire.
+            classement = adhesion_foyer.foyer if adhesion_foyer else espaces[0].foyer
+            request.perimetre = Perimetre(  # type: ignore[attr-defined]
+                tuple(acces.foyer for acces in espaces), classement
+            )
+            request.adhesion = adhesion_foyer or espaces[0]  # type: ignore[attr-defined]
         return self.get_response(request)

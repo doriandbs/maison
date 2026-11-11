@@ -2,10 +2,9 @@ from typing import Any
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import Http404, HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.translation import gettext as _
 from django.views import View
 from django.views.generic import FormView, TemplateView
@@ -15,7 +14,7 @@ from apps.socle.limites import limiter_par_utilisateur
 from . import services
 from .acces import AccesFoyerMixin
 from .forms import FormulaireFoyer, FormulaireInvitation, FormulaireRole, roles_attribuables
-from .middleware import CLE_SESSION_ESPACE, CLE_SESSION_FOYER
+from .middleware import CLE_SESSION_FOYER
 from .models import Adhesion, Invitation, Role
 
 
@@ -47,22 +46,6 @@ class VueActiverFoyer(LoginRequiredMixin, View):
             Adhesion, utilisateur=request.user, foyer_id=pk, foyer__personne__isnull=True
         )
         request.session[CLE_SESSION_FOYER] = adhesion.foyer_id
-        return redirect("accueil")
-
-
-class VueChoisirEspace(LoginRequiredMixin, View):
-    """Affiche les finances d'une personne : soi, ou un membre du foyer courant."""
-
-    def post(self, request: HttpRequest, pk: int) -> HttpResponse:
-        espaces = getattr(request, "espaces", [])
-        if not any(acces.foyer_id == pk for acces in espaces):
-            raise Http404
-        request.session[CLE_SESSION_ESPACE] = pk
-        # Retour possible vers une page de ses finances (ex. un compte cliqué depuis
-        # « Comptes de Dorian »), jamais vers un autre site.
-        suivante = request.POST.get("next", "")
-        if url_has_allowed_host_and_scheme(suivante, allowed_hosts={request.get_host()}):
-            return redirect(suivante)
         return redirect("accueil")
 
 

@@ -56,10 +56,6 @@ def acces_a(espace: Adhesion, role: str = Role.MEMBRE) -> Adhesion:
 
 
 def voir_espace(client, espace: Adhesion):  # type: ignore[no-untyped-def]
-    """Fait afficher à ce client les finances de `espace` (comme le sélecteur « Finances de »)."""
-    from apps.foyers.middleware import CLE_SESSION_ESPACE
-
-    session = client.session
-    session[CLE_SESSION_ESPACE] = espace.foyer_id
-    session.save()
+    """Sans effet : dans un foyer, les écrans montrent déjà les finances de tous ses membres.
+    Gardé pour la lisibilité des tests (« elle regarde les comptes de Dorian »)."""
     return client

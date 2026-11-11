@@ -11,6 +11,7 @@ from django.views import View
 from django.views.generic import CreateView, DeleteView, DetailView, TemplateView, UpdateView
 
 from apps.foyers.acces import AccesFoyerMixin, VueDeFoyerMixin, VueFormulaireDeFoyerMixin
+from apps.socle.perimetre import Perimetre
 from apps.socle.views import PageFormulaireMixin
 
 from .forms import FormulaireAnticipe, FormulairePret, FormulaireSimulation
@@ -28,7 +29,6 @@ class VuePrets(AccesFoyerMixin, TemplateView):
         contexte["encours"] = [e for e in encours if not e.est_termine]
         contexte["termines"] = [e for e in encours if e.est_termine]
         contexte["total_du"] = service_encours.total_dettes(encours)
-        contexte["partages"] = any(e.emprunteurs > 1 for e in encours)
         contexte["total_mensualites"] = sum(
             (e.prochaine_echeance.total for e in encours if e.prochaine_echeance), 0
         )
@@ -57,8 +57,6 @@ class VuePret(VueDeFoyerMixin, DetailView):
         contexte["tableau"] = tableau
         contexte["annees"] = service_encours.par_annee(tableau, aujourd_hui)
         contexte["formulaire_anticipe"] = FormulaireAnticipe(foyer=self.foyer)
-        # Les conditions du prêt ne se modifient que depuis l'espace où il a été saisi.
-        contexte["est_gere_ici"] = pret.foyer_id == self.foyer.pk
 
         # La simulation passe par GET : rien n'est enregistré, l'adresse se partage.
         formulaire = FormulaireSimulation(
@@ -91,12 +89,30 @@ class VueModifierPret(PageFormulaireMixin, VueFormulaireDeFoyerMixin, VueDeFoyer
     form_class = FormulairePret
     titre = gettext_lazy("Modifier le crédit")
 
+    def get_queryset(self) -> Any:
+        # Un co-emprunteur modifie le prêt comme celui qui l'a saisi.
+        return Pret.objects.visibles_dans(self.foyer)
+
+    def get_form_kwargs(self) -> dict[str, Any]:
+        arguments = super().get_form_kwargs()
+        espace_du_pret = self.object.foyer
+        if espace_du_pret not in self.foyer.espaces:
+            # Prêt d'un co-emprunteur hors du foyer courant : son espace s'ajoute au périmètre.
+            arguments["foyer"] = Perimetre(
+                (*self.foyer.espaces, espace_du_pret), self.foyer.classement
+            )
+        return arguments
+
     def get_success_url(self) -> str:
         return reverse("prets:pret", args=[self.object.pk])
 
 
 class VueSupprimerPret(VueDeFoyerMixin, DeleteView):
     model = Pret
+
+    def get_queryset(self) -> Any:
+        return Pret.objects.visibles_dans(self.foyer)
+
     template_name = "composants/page_confirmation.html"
     success_url = reverse_lazy("prets:liste")
 

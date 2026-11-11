@@ -6,11 +6,12 @@ from django.db import transaction
 from apps.banque.models import Categorie, Nature
 from apps.budget.models import LigneBudget
 from apps.foyers.models import Foyer
+from apps.socle.perimetre import Perimetre
 
 from .flux import ZERO
 
 
-def budgets_du_mois(foyer: Foyer, mois: date) -> dict[int, Decimal]:
+def budgets_du_mois(foyer: Foyer | Perimetre, mois: date) -> dict[int, Decimal]:
     """Budget saisi applicable à chaque catégorie pour ce mois (absente = pas de budget).
 
     La dernière ligne ordinaire antérieure ou égale au mois s'applique, sauf si une
@@ -30,7 +31,7 @@ def budgets_du_mois(foyer: Foyer, mois: date) -> dict[int, Decimal]:
 
 @transaction.atomic
 def enregistrer_budgets(
-    *, foyer: Foyer, mois: date, montants: dict[int, Decimal | None], ponctuel: bool
+    *, foyer: Foyer | Perimetre, mois: date, montants: dict[int, Decimal | None], ponctuel: bool
 ) -> int:
     """Enregistre les budgets modifiés et renvoie leur nombre.
 
@@ -49,7 +50,7 @@ def enregistrer_budgets(
         if categorie_id not in autorisees or montant == actuels.get(categorie_id, ZERO):
             continue
         LigneBudget.objects.update_or_create(
-            foyer=foyer,
+            foyer=foyer.classement if isinstance(foyer, Perimetre) else foyer,
             categorie_id=categorie_id,
             mois=mois,
             ponctuel=ponctuel,

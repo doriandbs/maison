@@ -32,7 +32,7 @@
       <tr>
         <td class="whitespace-nowrap">{{ operation.date|date:"j M Y" }}</td>
         <td>{{ operation.libelle }}{% if operation.note %}<div class="text-sm text-texte-discret">{{ operation.note }}</div>{% endif %}</td>
-        <td>{{ operation.compte.nom }}</td>
+        <td>{{ operation.compte.nom }}{% if plusieurs_titulaires %} <span class="pastille-neutre">{{ operation.compte.proprietaire }}</span>{% endif %}</td>
         <td>
           {% if operation.est_virement %}<span class="pastille">{% translate "virement" %}</span>
           {% elif operation.categorie %}{{ operation.categorie }}

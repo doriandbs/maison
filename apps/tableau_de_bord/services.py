@@ -137,7 +137,8 @@ def synthese(
     aujourd_hui = aujourd_hui or date.today()
     soldes = soldes_des_comptes(foyer, aujourd_hui)
     comptes = [
-        SoldeCompte(compte, soldes[compte.pk]) for compte in Compte.objects.du_foyer(foyer).actifs()
+        SoldeCompte(compte, soldes[compte.pk])
+        for compte in Compte.objects.du_foyer(foyer).actifs().select_related("foyer__personne")
     ]
     factures, nombre_factures, montant_factures = factures_a_payer(foyer_documents, aujourd_hui)
     credits = encours_du_foyer(foyer, aujourd_hui)
@@ -154,7 +155,7 @@ def synthese(
         dernieres_operations=list(
             Operation.objects.du_foyer(foyer)
             .filter(date__lte=aujourd_hui)
-            .select_related("compte", "categorie__parent")[:NOMBRE_OPERATIONS]
+            .select_related("compte__foyer__personne", "categorie__parent")[:NOMBRE_OPERATIONS]
         ),
     )
 

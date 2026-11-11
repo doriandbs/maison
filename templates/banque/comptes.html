@@ -38,6 +38,7 @@
           <span class="min-w-0 flex-1">
             <span class="flex items-center gap-2">
               <span class="truncate font-medium">{{ ligne.compte.nom }}</span>
+              {% if plusieurs_titulaires %}<span class="pastille-neutre">{{ ligne.compte.proprietaire }}</span>{% endif %}
               {% if ligne.compte.est_epargne %}<span class="pastille">{% translate "épargne" %}</span>{% endif %}
             </span>
             <span class="block text-xs text-texte-discret">{{ ligne.compte.get_type_display }}</span>
@@ -53,51 +54,6 @@
 {% else %}
 <div class="carte"><p>{% translate "Aucun compte pour l'instant. Commencez par ajouter votre compte courant avec son solde du jour." %}</p></div>
 {% endif %}
-
-{% for autre in autres %}
-<section class="space-y-4" aria-labelledby="comptes-de-{{ forloop.counter }}">
-  <div class="flex flex-wrap items-baseline justify-between gap-3 border-t border-bordure pt-6">
-    <h2 id="comptes-de-{{ forloop.counter }}" class="flex items-center gap-2 text-lg">
-      <span class="vignette size-8 rounded-full bg-primaire-50 font-semibold text-primaire-600" aria-hidden="true">{{ autre.personne.first_name|default:autre.personne.email|first|upper }}</span>
-      {% blocktranslate with nom=autre.personne.first_name|default:autre.personne.email %}Comptes de {{ nom }}{% endblocktranslate %}
-    </h2>
-    <p class="text-sm text-texte-discret">{% translate "Total" %} <strong class="font-semibold text-texte tabular-nums">{{ autre.total|euros }}</strong></p>
-  </div>
-  {% if autre.groupes %}
-  <div class="grid items-start gap-6 lg:grid-cols-2">
-    {% for groupe in autre.groupes %}
-    <section class="carte p-0">
-      <div class="flex items-center gap-3 border-b border-bordure px-5 py-4">
-        <span class="vignette" aria-hidden="true">{% if groupe.est_sans_etablissement %}{% icone "comptes" classe="size-4" %}{% else %}{{ groupe.nom|first|upper }}{% endif %}</span>
-        <div class="min-w-0 flex-1"><h3 class="truncate font-semibold">{{ groupe.nom }}</h3></div>
-        <p class="montant font-semibold">{{ groupe.total|euros }}</p>
-      </div>
-      <ul class="liste px-3 py-1">
-        {% for ligne in groupe.lignes %}
-        <li>
-          {# Ouvrir le compte bascule sur les finances de cette personne (sélecteur « Finances de »). #}
-          <form method="post" action="{% url 'foyers:espace' autre.acces.foyer_id %}">
-            {% csrf_token %}
-            <input type="hidden" name="next" value="{% url 'banque:compte' ligne.compte.pk %}">
-            <button class="ligne w-full cursor-pointer rounded-xl px-2 text-left transition-colors hover:bg-surface-2">
-              <span class="min-w-0 flex-1">
-                <span class="flex items-center gap-2"><span class="truncate font-medium">{{ ligne.compte.nom }}</span>{% if ligne.compte.est_epargne %}<span class="pastille">{% translate "épargne" %}</span>{% endif %}</span>
-                <span class="block text-xs text-texte-discret">{{ ligne.compte.get_type_display }}</span>
-              </span>
-              <span class="montant {% if ligne.solde < 0 %}text-danger{% endif %}">{{ ligne.solde|euros }}</span>
-            </button>
-          </form>
-        </li>
-        {% endfor %}
-      </ul>
-    </section>
-    {% endfor %}
-  </div>
-  {% else %}
-  <p class="carte text-sm text-texte-discret">{% translate "Aucun compte pour l'instant." %}</p>
-  {% endif %}
-</section>
-{% endfor %}
 
 {% if comptes_archives %}
 <details class="carte">

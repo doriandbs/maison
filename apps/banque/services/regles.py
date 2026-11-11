@@ -8,6 +8,7 @@ from django.db import transaction
 
 from apps.banque.models import Categorie, Operation, RegleCategorisation
 from apps.foyers.models import Foyer
+from apps.socle.perimetre import Perimetre
 
 
 def normaliser(texte: str) -> str:
@@ -20,7 +21,7 @@ def normaliser(texte: str) -> str:
 class Classeur:
     """Règles d'un foyer chargées une fois, appliquées à autant d'opérations que voulu."""
 
-    def __init__(self, foyer: Foyer) -> None:
+    def __init__(self, foyer: Foyer | Perimetre) -> None:
         regles = RegleCategorisation.objects.du_foyer(foyer).select_related("categorie")
         # Le motif le plus long (le plus précis) l'emporte : « UBER EATS » avant « UBER ».
         self.regles = sorted(
@@ -38,7 +39,7 @@ class Classeur:
 
 
 @transaction.atomic
-def memoriser(foyer: Foyer, motif: str, categorie: Categorie) -> RegleCategorisation:
+def memoriser(foyer: Foyer | Perimetre, motif: str, categorie: Categorie) -> RegleCategorisation:
     """Crée la règle, ou la redirige vers la nouvelle catégorie si le motif existe déjà."""
     motif = " ".join(motif.split())[:100]
     existante = next(
@@ -53,11 +54,12 @@ def memoriser(foyer: Foyer, motif: str, categorie: Categorie) -> RegleCategorisa
         existante.categorie = categorie
         existante.save(update_fields=["categorie", "modifie_le"])
         return existante
-    return RegleCategorisation.objects.create(foyer=foyer, motif=motif, categorie=categorie)
+    cible = foyer.classement if isinstance(foyer, Perimetre) else foyer
+    return RegleCategorisation.objects.create(foyer=cible, motif=motif, categorie=categorie)
 
 
 @transaction.atomic
-def appliquer_aux_operations_a_classer(foyer: Foyer) -> int:
+def appliquer_aux_operations_a_classer(foyer: Foyer | Perimetre) -> int:
     """Classe les opérations sans catégorie (hors virements internes) ; renvoie leur nombre."""
     classeur = Classeur(foyer)
     a_classer = Operation.objects.du_foyer(foyer).filter(

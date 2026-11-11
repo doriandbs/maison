@@ -12,7 +12,6 @@
   <div class="carte">
     <p class="libelle-indicateur">{% translate "Capital restant dû" %}</p>
     <p class="indicateur" data-compteur="{{ total_du|valeur_brute }}">{{ total_du|euros }}</p>
-    {% if partages %}<p class="aide">{% translate "votre part des crédits à plusieurs" %}</p>{% endif %}
   </div>
   <div class="carte">
     <p class="libelle-indicateur">{% translate "Prochaines échéances" %}</p>

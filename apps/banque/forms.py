@@ -73,7 +73,11 @@ class FormulaireOperation(FormulaireDeFoyer):
         comptes = self.fields["compte"]
         comptes.queryset = comptes.queryset.filter(  # type: ignore[attr-defined]
             Q(archive_le__isnull=True) | Q(pk=self.instance.compte_id)
-        )
+        ).select_related("foyer__personne")
+        if len(self.perimetre.espaces) > 1:
+            comptes.label_from_instance = (  # type: ignore[attr-defined]
+                lambda compte: f"{compte.nom} · {compte.proprietaire}"
+            )
         categories = self.fields["categorie"]
         categories.queryset = (  # type: ignore[attr-defined]
             categories.queryset.filter(parent__isnull=False)  # type: ignore[attr-defined]
@@ -81,6 +85,13 @@ class FormulaireOperation(FormulaireDeFoyer):
             .select_related("parent")
             .order_by("parent__nom", "nom")
         )
+        actuelle = self.instance.categorie if self.instance.categorie_id else None
+        if actuelle is not None and actuelle.foyer_id != self.perimetre.classement.pk:
+            # Classée avec les catégories d'une personne : on propose celle du foyer de même nom.
+            equivalente = categories.queryset.filter(  # type: ignore[attr-defined]
+                nom__iexact=actuelle.nom, parent__nom__iexact=getattr(actuelle.parent, "nom", "")
+            ).first()
+            self.initial["categorie"] = equivalente.pk if equivalente else None
         if self.instance.pk:
             self.initial["montant"] = abs(self.instance.montant)
             self.initial["sens"] = Sens.RECETTE if self.instance.montant > 0 else Sens.DEPENSE
@@ -91,6 +102,9 @@ class FormulaireOperation(FormulaireDeFoyer):
         if montant is not None:
             donnees["montant"] = -montant if donnees.get("sens") == Sens.DEPENSE else montant
         compte, jour = donnees.get("compte"), donnees.get("date")
+        if compte is not None:
+            # L'opération vit dans l'espace de son compte (celui de Dorian, d'Alexandra…).
+            self.instance.foyer = compte.foyer
         if compte and jour and jour < compte.ouvert_le:
             self.add_error(
                 "date", _("Cette date est antérieure à celle du solde initial du compte.")

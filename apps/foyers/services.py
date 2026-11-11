@@ -38,6 +38,12 @@ def creer_foyer(*, utilisateur: Utilisateur, nom: str) -> Foyer:
         role=Role.PROPRIETAIRE,
         est_principal=not _a_un_foyer_principal(utilisateur),
     )
+    # Catégories, règles et budget sont communs au foyer : il part de ceux du créateur.
+    from apps.banque.services.categories import copier_classement
+
+    from .espaces import espace_personnel
+
+    copier_classement(espace_personnel(utilisateur), foyer)
     return foyer
 
 

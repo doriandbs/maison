@@ -1,5 +1,4 @@
 from datetime import date
-from decimal import Decimal
 from typing import Any
 
 from django.contrib import messages
@@ -56,7 +55,7 @@ class VueComptes(AccesFoyerMixin, TemplateView):
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         contexte = super().get_context_data(**kwargs)
         soldes = service_soldes.soldes_des_comptes(self.foyer)
-        comptes = list(Compte.objects.du_foyer(self.foyer))
+        comptes = list(Compte.objects.du_foyer(self.foyer).select_related("foyer__personne"))
         for compte in comptes:
             compte.solde = soldes[compte.pk]  # type: ignore[attr-defined]
         actifs = [compte for compte in comptes if not compte.est_archive]
@@ -64,29 +63,7 @@ class VueComptes(AccesFoyerMixin, TemplateView):
         contexte["groupes"] = regrouper_par_etablissement(actifs, soldes)
         contexte["comptes_archives"] = [compte for compte in comptes if compte.est_archive]
         contexte["total"] = sum(compte.solde for compte in actifs)  # type: ignore[attr-defined]
-        contexte["autres"] = self._comptes_des_autres_membres()
         return contexte
-
-    def _comptes_des_autres_membres(self) -> list[dict[str, Any]]:
-        """Sur ses propres comptes, ceux des autres membres du foyer courant, en dessous.
-
-        Les espaces viennent de `request.espaces` : seulement ceux que le foyer courant ouvre.
-        """
-        if self.foyer.personne_id != self.request.user.pk:
-            return []
-        autres = []
-        for acces in self.request.espaces[1:]:  # type: ignore[attr-defined]
-            soldes = service_soldes.soldes_des_comptes(acces.foyer)
-            comptes = list(Compte.objects.du_foyer(acces.foyer).actifs())
-            autres.append(
-                {
-                    "acces": acces,
-                    "personne": acces.foyer.personne,
-                    "groupes": regrouper_par_etablissement(comptes, soldes),
-                    "total": sum((soldes[c.pk] for c in comptes), Decimal(0)),
-                }
-            )
-        return autres
 
 
 class VueCompte(VueDeFoyerMixin, DetailView):
@@ -164,7 +141,9 @@ class VueOperations(VueDeFoyerMixin, ListView):
     paginate_by = 50
 
     def get_queryset(self) -> RequeteDeFoyer:
-        operations = super().get_queryset().select_related("compte", "categorie__parent")
+        operations = (
+            super().get_queryset().select_related("compte__foyer__personne", "categorie__parent")
+        )
         self.filtre = FormulaireFiltreOperations(self.request.GET or None, foyer=self.foyer)
         if self.filtre.is_valid():
             if recherche := self.filtre.cleaned_data["recherche"]:
@@ -339,7 +318,9 @@ class VueApercuImport(AccesFoyerMixin, View):
         if not donnees or donnees["foyer"] != self.foyer.pk:
             return None
         compte = get_object_or_404(Compte.objects.du_foyer(self.foyer), pk=donnees["compte"])
-        return service_importation.preparer(compte, depuis_session(donnees["releve"]))
+        return service_importation.preparer(
+            compte, depuis_session(donnees["releve"]), classement=self.foyer
+        )
 
     def _afficher(self, formulaire: FormulaireApercu) -> HttpResponse:
         apercu = formulaire.apercu

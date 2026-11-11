@@ -8,7 +8,7 @@ from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
 
 AVANT = "0002_espace_personnel"
-APRES = "0003_espaces_personnels_donnees"
+APRES = "0004_classement_des_foyers"
 
 
 def _etat(migration_foyers):
@@ -95,8 +95,9 @@ def test_les_finances_d_un_foyer_passent_dans_l_espace_de_son_proprietaire():
     assert list(compte.titulaires.values_list("utilisateur_id", flat=True)) == [dorian.pk]
     operation = recharger(("banque", "Operation"), operation)
     assert operation.foyer_id == espace.pk and operation.categorie.foyer_id == espace.pk
-    assert apps.get_model("budget", "LigneBudget").objects.get().foyer_id == espace.pk
-    assert apps.get_model("banque", "RegleCategorisation").objects.get().foyer_id == espace.pk
+    assert apps.get_model("budget", "LigneBudget").objects.filter(foyer_id=espace.pk).count() == 1
+    regles = apps.get_model("banque", "RegleCategorisation").objects
+    assert regles.filter(foyer_id=espace.pk).count() == 1
     assert recharger(("prets", "Pret"), pret).foyer_id == espace.pk
     document = recharger(("documents", "Document"), document)
     assert document.foyer_id == maison.pk  # les papiers restent au foyer…
@@ -108,3 +109,9 @@ def test_les_finances_d_un_foyer_passent_dans_l_espace_de_son_proprietaire():
     Categorie = apps.get_model("banque", "Categorie")
     assert Categorie.objects.filter(foyer_id=espace_femme.pk).count() > 10
     assert Categorie.objects.filter(foyer_id=espace.pk, nom="Courses").count() == 1
+    # Le foyer reçoit un classement commun, recopié de l'espace de son propriétaire.
+    assert Categorie.objects.filter(foyer_id=maison.pk, nom="Courses").exists()
+    regle = apps.get_model("banque", "RegleCategorisation").objects.get(foyer_id=maison.pk)
+    assert (regle.motif, regle.categorie.foyer_id) == ("LIDL", maison.pk)
+    ligne = apps.get_model("budget", "LigneBudget").objects.get(foyer_id=maison.pk)
+    assert ligne.categorie.nom == "Alimentation"

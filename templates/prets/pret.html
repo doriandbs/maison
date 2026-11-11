@@ -8,21 +8,17 @@
     <h1>{{ pret.nom }}</h1>
     <p class="text-sm text-texte-discret">
       {% if pret.etablissement %}{{ pret.etablissement }} · {% endif %}{{ pret.capital|euros }} {% translate "à" %} {{ pret.taux_annuel|floatformat:"-3" }} % {% translate "sur" %} {{ pret.duree_mois }} {% translate "mois" %}
-      {% if pret.compte and est_gere_ici %} · <a href="{% url 'banque:compte' pret.compte.pk %}">{{ pret.compte.nom }}</a>{% endif %}
+      {% if pret.compte %} · <a href="{% url 'banque:compte' pret.compte.pk %}">{{ pret.compte.nom }}</a>{% endif %}
     </p>
     {% if pret.co_emprunteurs.all %}
     <p class="mt-1 flex flex-wrap items-center gap-2 text-sm text-texte-discret">
       <span class="pastille">{% translate "à plusieurs" %}</span>
       {% translate "Emprunteurs :" %}
       {{ pret.foyer.personne.first_name|default:pret.foyer.personne.email }}{% for personne in pret.co_emprunteurs.all %}, {{ personne.first_name|default:personne.email }}{% endfor %}
-      · {% blocktranslate with n=encours.emprunteurs %}chacun compte 1/{{ n }} dans son patrimoine{% endblocktranslate %}
     </p>
     {% endif %}
-    {% if not est_gere_ici %}
-    <p class="mt-1 text-sm text-texte-discret">{% blocktranslate with nom=pret.foyer.personne.first_name|default:pret.foyer.personne.email %}Saisi par {{ nom }} : c'est dans ses finances que ses conditions se modifient.{% endblocktranslate %}</p>
-    {% endif %}
   </div>
-  {% if peut_modifier and est_gere_ici %}
+  {% if peut_modifier %}
   <span class="flex flex-wrap gap-2">
     <a class="bouton-secondaire" href="{% url 'prets:modifier' pret.pk %}">{% icone "modifier" classe="size-4" %}{% translate "Modifier" %}</a>
     <a class="bouton-danger" href="{% url 'prets:supprimer' pret.pk %}">{% translate "Supprimer" %}</a>

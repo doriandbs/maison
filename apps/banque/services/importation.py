@@ -15,6 +15,8 @@ from apps.banque.importation import Releve
 from apps.banque.models import Categorie, Compte, Operation
 from apps.banque.services.regles import Classeur, normaliser
 from apps.banque.services.soldes import soldes_des_comptes
+from apps.foyers.models import Foyer
+from apps.socle.perimetre import Perimetre
 from apps.utilisateurs.models import Utilisateur
 
 ZERO = Decimal("0.00")
@@ -97,10 +99,11 @@ def _empreintes_importees(compte: Compte) -> set[str]:
     return {empreinte for empreinte in empreintes if empreinte}
 
 
-def preparer(compte: Compte, releve: Releve) -> Apercu:
+def preparer(compte: Compte, releve: Releve, classement: Foyer | Perimetre | None = None) -> Apercu:
+    """`classement` : où chercher les règles (le foyer courant) ; par défaut, l'espace du compte."""
     deja_importees = _empreintes_importees(compte)
     date_et_montant = set(Operation.objects.filter(compte=compte).values_list("date", "montant"))
-    classeur = Classeur(compte.foyer)
+    classeur = Classeur(classement or compte.foyer)
 
     vues: Counter[tuple[date, Decimal, str]] = Counter()
     lignes: list[LigneApercu] = []

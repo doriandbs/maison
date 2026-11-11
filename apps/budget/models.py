@@ -14,6 +14,9 @@ class LigneBudget(ModeleDeFoyer):
     Seul le tableau mensuel est calculé : voir `budget.services.previsionnel`.
     """
 
+    # Commun à tout le foyer (voir socle.perimetre), pas à l'espace d'une personne.
+    porte_le_classement = True
+
     categorie = models.ForeignKey(
         "banque.Categorie",
         verbose_name=_("catégorie"),

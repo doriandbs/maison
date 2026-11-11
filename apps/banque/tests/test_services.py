@@ -219,10 +219,10 @@ class TestContraintesOperation:
 
 
 class TestCategories:
-    def test_un_foyer_partage_n_a_pas_de_categories(self):
+    def test_un_foyer_partage_part_des_categories_de_son_createur(self):
         foyer = creer_foyer(utilisateur=FabriqueUtilisateur(), nom="Maison")
 
-        assert not Categorie.objects.du_foyer(foyer).exists()
+        assert Categorie.objects.du_foyer(foyer).filter(nom="Courses").exists()
 
     def test_un_espace_personnel_recoit_les_categories_par_defaut(self):
         foyer = espace_personnel(FabriqueUtilisateur())

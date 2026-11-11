@@ -7,7 +7,7 @@ from django.shortcuts import redirect
 
 from apps.socle.models import RequeteDeFoyer
 
-from .models import Adhesion, Foyer, Role
+from .models import Adhesion, Role
 
 METHODES_DE_LECTURE = frozenset({"GET", "HEAD", "OPTIONS"})
 
@@ -26,7 +26,7 @@ class AccesFoyerMixin(AccessMixin):
     portee: str = "finances"
 
     adhesion: Adhesion
-    foyer: Foyer
+    foyer: Any  # Foyer, ou Perimetre pour les écrans de finances
 
     def dispatch(self, request: HttpRequest, *args: Any, **kwargs: Any) -> Any:
         if not request.user.is_authenticated:
@@ -37,13 +37,16 @@ class AccesFoyerMixin(AccessMixin):
             return redirect("foyers:liste")
         # Lu par le processeur de contexte : rôle et droits affichés suivent la vue.
         request.adhesion_active = adhesion  # type: ignore[attr-defined]
+        perimetre = getattr(request, "perimetre", None)
         role_requis = (
             self.role_lecture if request.method in METHODES_DE_LECTURE else self.role_ecriture
         )
         if not adhesion.a_au_moins(role_requis):
             raise PermissionDenied
         self.adhesion = adhesion
-        self.foyer = adhesion.foyer
+        # Écrans de finances : `self.foyer` est le périmètre (tous les espaces du foyer et son
+        # classement), que `du_foyer()` et `FormulaireDeFoyer` savent filtrer.
+        self.foyer = perimetre if self.portee == "finances" and perimetre else adhesion.foyer
         return super().dispatch(request, *args, **kwargs)  # type: ignore[misc]
 
 

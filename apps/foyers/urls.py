@@ -10,7 +10,6 @@ urlpatterns = [
     path("foyers/creer/", views.VueCreerFoyer.as_view(), name="creer"),
     path("foyers/<int:pk>/activer/", views.VueActiverFoyer.as_view(), name="activer"),
     path("foyers/<int:pk>/principal/", views.VueFoyerPrincipal.as_view(), name="principal"),
-    path("finances/<int:pk>/", views.VueChoisirEspace.as_view(), name="espace"),
     # Foyer courant
     path("foyer/membres/", views.VueMembres.as_view(), name="membres"),
     path("foyer/membres/<int:pk>/role/", views.VueChangerRole.as_view(), name="changer_role"),

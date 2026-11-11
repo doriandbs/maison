@@ -8,6 +8,8 @@ from django.utils.translation import gettext_lazy as _
 if TYPE_CHECKING:
     from apps.foyers.models import Foyer
 
+    from .perimetre import Perimetre
+
 
 class ModeleHorodate(models.Model):
     cree_le = models.DateTimeField(_("créé le"), auto_now_add=True)
@@ -18,7 +20,12 @@ class ModeleHorodate(models.Model):
 
 
 class RequeteDeFoyer(models.QuerySet):
-    def du_foyer(self, foyer: Foyer) -> Self:
+    def du_foyer(self, foyer: Foyer | Perimetre) -> Self:
+        """Les objets d'un foyer, ou d'un périmètre (plusieurs espaces + un classement)."""
+        from .perimetre import Perimetre
+
+        if isinstance(foyer, Perimetre):
+            return self.filter(foyer__in=foyer.foyers_pour(self.model))
         return self.filter(foyer=foyer)
 
 

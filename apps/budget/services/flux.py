@@ -14,8 +14,10 @@ from decimal import ROUND_HALF_UP, Decimal
 
 from django.db.models import Q, Sum
 
-from apps.banque.models import Nature, Operation
+from apps.banque.models import Categorie, Nature, Operation
+from apps.banque.services.regles import normaliser
 from apps.foyers.models import Foyer
+from apps.socle.perimetre import Perimetre
 
 ZERO = Decimal("0.00")
 
@@ -51,10 +53,10 @@ def dernier_du_mois(annee: int, mois: int) -> date:
 
 
 def mouvements_par_mois(
-    foyer: Foyer, debut: date, fin: date
+    foyer: Foyer | Perimetre, debut: date, fin: date
 ) -> dict[tuple[int, int], MouvementsParCategorie]:
     """Opérations hors virements, agrégées par (année, mois) puis par catégorie."""
-    lignes = (
+    lignes = list(
         Operation.objects.du_foyer(foyer)
         .filter(date__range=(debut, fin), groupe_virement__isnull=True)
         .order_by()
@@ -64,10 +66,39 @@ def mouvements_par_mois(
             sorties=Sum("montant", filter=Q(montant__lt=0)),
         )
     )
+    vers_classement = correspondance_des_categories(
+        foyer, {ligne["categorie_id"] for ligne in lignes if ligne["categorie_id"]}
+    )
     resultat: dict[tuple[int, int], MouvementsParCategorie] = {}
     for ligne in lignes:
         du_mois = resultat.setdefault((ligne["date__year"], ligne["date__month"]), {})
-        du_mois[ligne["categorie_id"]] = (ligne["entrees"] or ZERO, ligne["sorties"] or ZERO)
+        cle = vers_classement.get(ligne["categorie_id"]) if ligne["categorie_id"] else None
+        entrees, sorties = du_mois.get(cle, (ZERO, ZERO))
+        du_mois[cle] = (entrees + (ligne["entrees"] or ZERO), sorties + (ligne["sorties"] or ZERO))
+    return resultat
+
+
+def correspondance_des_categories(foyer: Foyer | Perimetre, ids: set[int]) -> dict[int, int | None]:
+    """Ramène chaque catégorie d'opération à celle du classement de même nom.
+
+    Dans un foyer, chacun a pu classer ses opérations avec ses propres catégories (avant de
+    rejoindre le foyer, ou depuis un autre foyer) : « Alimentation › Courses » d'une personne
+    compte dans « Alimentation › Courses » du foyer. Sans équivalent : « à classer ».
+    """
+    classement = Categorie.objects.du_foyer(foyer).select_related("parent")
+    connues = {c.pk for c in classement}
+    inconnues = ids - connues
+    resultat: dict[int, int | None] = {pk: pk for pk in ids & connues}
+    if not inconnues:
+        return resultat
+    par_nom = {(normaliser(c.parent.nom), normaliser(c.nom)): c.pk for c in classement if c.parent}
+    for categorie in Categorie.objects.filter(pk__in=inconnues).select_related("parent"):
+        cle = (
+            (normaliser(categorie.parent.nom), normaliser(categorie.nom))
+            if categorie.parent
+            else None
+        )
+        resultat[categorie.pk] = par_nom.get(cle) if cle else None
     return resultat
 
 

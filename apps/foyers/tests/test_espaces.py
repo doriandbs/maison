@@ -1,4 +1,8 @@
-"""Espaces financiers personnels et accès croisés entre membres d'un foyer (ADR 0006)."""
+"""Finances personnelles et foyers partagés (ADR 0006).
+
+Chacun a son espace (comptes, opérations, crédits). Dans un foyer, les écrans réunissent les
+finances de tous ses membres, classées avec les catégories communes du foyer.
+"""
 
 from datetime import date
 from decimal import Decimal as D
@@ -6,16 +10,28 @@ from decimal import Decimal as D
 import pytest
 from django.urls import reverse
 
-from apps.banque.models import Categorie, Compte
-from apps.banque.tests.fabriques import FabriqueCompte
+from apps.banque.models import Categorie, Compte, Operation
+from apps.banque.tests.fabriques import FabriqueCompte, FabriqueOperation, FabriqueSousCategorie
+from apps.budget.services.tableau import tableau_mensuel
 from apps.foyers.espaces import acces_aux_espaces, espace_personnel
-from apps.foyers.middleware import CLE_SESSION_ESPACE, CLE_SESSION_FOYER
+from apps.foyers.middleware import CLE_SESSION_FOYER
 from apps.foyers.models import Adhesion, Foyer, Role
+from apps.foyers.services import creer_foyer
+from apps.socle.perimetre import Perimetre
 from apps.utilisateurs.tests.fabriques import FabriqueUtilisateur
 
-from .fabriques import FabriqueAdhesion, FabriqueFoyer, acces_a, espace_de, voir_espace
+from .fabriques import FabriqueAdhesion, acces_a, espace_de
 
 pytestmark = pytest.mark.django_db
+
+
+def _comptes_affiches(client) -> set[str]:
+    return {compte.nom for compte in client.get(reverse("banque:comptes")).context["comptes"]}
+
+
+def _perimetre_de(adhesion: Adhesion) -> Perimetre:
+    espaces = acces_aux_espaces(adhesion.utilisateur, adhesion.foyer)
+    return Perimetre(tuple(a.foyer for a in espaces), adhesion.foyer)
 
 
 class TestEspacePersonnel:
@@ -56,17 +72,24 @@ class TestEspacePersonnel:
         assert client.get(reverse("accueil")).context["adhesions"] == []
 
 
-class TestAccesCroise:
-    def test_un_membre_voit_et_gere_les_finances_des_autres(self, client):
+class TestFoyerReuni:
+    def test_les_ecrans_reunissent_les_comptes_de_tous_les_membres(self, client):
         dorian = espace_de(FabriqueUtilisateur(first_name="Dorian"))
-        compte = FabriqueCompte(foyer=dorian.foyer, nom="Courant SG Dorian")
-        alexandra = acces_a(dorian, Role.MEMBRE)
+        FabriqueCompte(foyer=dorian.foyer, nom="Courant SG")
+        alexandra = acces_a(dorian)
+        FabriqueCompte(foyer=espace_de(alexandra.utilisateur).foyer, nom="Bourso")
         client.force_login(alexandra.utilisateur)
 
-        espaces = client.get(reverse("accueil")).context["espaces"]
-        assert [e.foyer for e in espaces][1:] == [dorian.foyer]
-        client.post(reverse("foyers:espace", args=[dorian.foyer_id]))
-        assert "Courant SG Dorian" in client.get(reverse("banque:comptes")).content.decode()
+        page = client.get(reverse("banque:comptes"))
+
+        assert {c.nom for c in page.context["comptes"]} == {"Courant SG", "Bourso"}
+        assert page.context["plusieurs_titulaires"]
+        assert ">Dorian<" in page.content.decode()  # le titulaire est indiqué
+
+    def test_un_membre_modifie_le_compte_d_un_autre(self, client):
+        dorian = espace_de()
+        compte = FabriqueCompte(foyer=dorian.foyer, nom="Ancien nom")
+        client.force_login(acces_a(dorian, Role.MEMBRE).utilisateur)
 
         client.post(
             reverse("banque:modifier_compte", args=[compte.pk]),
@@ -77,155 +100,201 @@ class TestAccesCroise:
                 "ouvert_le": "2026-01-01",
             },
         )
+
         compte.refresh_from_db()
-        assert compte.nom == "Courant SG"
+        assert (compte.nom, compte.foyer) == ("Courant SG", dorian.foyer)
 
-    def test_le_role_dans_le_foyer_s_applique_aux_espaces_des_membres(self):
+    def test_une_operation_sur_le_compte_d_un_autre_reste_dans_son_espace(self, client):
         dorian = espace_de()
-        lectrice = acces_a(dorian, Role.LECTEUR)
+        compte = FabriqueCompte(foyer=dorian.foyer, ouvert_le=date(2026, 1, 1))
+        alexandra = acces_a(dorian)
+        courses = FabriqueSousCategorie(parent__foyer=alexandra.foyer)  # catégorie du foyer
+        client.force_login(alexandra.utilisateur)
 
-        acces = acces_aux_espaces(lectrice.utilisateur, lectrice.foyer)
+        client.post(
+            reverse("banque:ajouter_operation"),
+            {
+                "compte": compte.pk,
+                "date": "2026-03-01",
+                "libelle": "Courses",
+                "sens": "depense",
+                "montant": "50",
+                "categorie": courses.pk,
+            },
+        )
 
-        assert acces[0].role == Role.PROPRIETAIRE  # son propre espace
-        assert (acces[1].foyer, acces[1].role) == (dorian.foyer, Role.LECTEUR)
-        assert acces[1].pk is None  # adhésion calculée, jamais enregistrée
+        operation = Operation.objects.get()
+        assert (operation.foyer, operation.categorie) == (dorian.foyer, courses)
 
-    def test_seuls_les_membres_du_foyer_courant_sont_proposes(self, client):
+    def test_virement_entre_les_comptes_de_deux_membres(self, client):
         dorian = espace_de()
+        source = FabriqueCompte(foyer=dorian.foyer, ouvert_le=date(2026, 1, 1))
+        alexandra = acces_a(dorian)
+        destination = FabriqueCompte(foyer=espace_de(alexandra.utilisateur).foyer)
+        client.force_login(alexandra.utilisateur)
+
+        client.post(
+            reverse("banque:ajouter_virement"),
+            {
+                "source": source.pk,
+                "destination": destination.pk,
+                "date": "2026-03-01",
+                "montant": "100",
+                "libelle": "Participation",
+            },
+        )
+
+        debit, credit = Operation.objects.order_by("montant")
+        assert (debit.foyer, credit.foyer) == (dorian.foyer, destination.foyer)
+        assert debit.groupe_virement == credit.groupe_virement
+
+    def test_un_lecteur_consulte_sans_modifier(self, client):
+        dorian = espace_de()
+        compte = FabriqueCompte(
+            foyer=dorian.foyer, solde_initial=D("10"), ouvert_le=date(2026, 1, 1)
+        )
+        client.force_login(acces_a(dorian, Role.LECTEUR).utilisateur)
+
+        assert compte.nom in _comptes_affiches(client)
+        assert client.post(reverse("banque:archiver_compte", args=[compte.pk])).status_code == 403
+
+    def test_seuls_les_membres_du_foyer_courant_sont_reunis(self, client):
+        dorian = espace_de()
+        FabriqueCompte(foyer=dorian.foyer, nom="Compte de Dorian")
         alexandra = acces_a(dorian)
         parents = FabriqueAdhesion(utilisateur=alexandra.utilisateur, foyer__nom="Parents")
         mere = FabriqueAdhesion(foyer=parents.foyer)
+        FabriqueCompte(foyer=espace_de(mere.utilisateur).foyer, nom="Compte de la mère")
         client.force_login(alexandra.utilisateur)
 
-        dans_le_couple = {e.foyer.personne for e in client.get("/").context["espaces"]}
+        dans_le_couple = _comptes_affiches(client)
         session = client.session
         session[CLE_SESSION_FOYER] = parents.foyer_id
         session.save()
-        chez_les_parents = {e.foyer.personne for e in client.get("/").context["espaces"]}
+        chez_les_parents = _comptes_affiches(client)
 
-        assert dans_le_couple == {alexandra.utilisateur, dorian.utilisateur}
-        assert chez_les_parents == {alexandra.utilisateur, mere.utilisateur}
+        assert dans_le_couple == {"Compte de Dorian"}
+        assert chez_les_parents == {"Compte de la mère"}
 
 
-def _membre_d_un_foyer():
-    """Quelqu'un qui partage un foyer avec un proche : l'accès croisé est actif pour lui,
-    c'est donc là qu'une fuite vers l'espace d'un inconnu se produirait."""
+def _membre_d_un_foyer() -> Adhesion:
+    """Quelqu'un qui partage un foyer avec un proche : les écrans réunissent plusieurs
+    espaces pour lui, c'est donc là qu'une fuite vers l'espace d'un inconnu se produirait."""
     return acces_a(espace_de())
 
 
 class TestIsolation:
-    def test_impossible_de_choisir_l_espace_d_un_inconnu(self, client):
-        inconnu = espace_de()
+    def test_les_comptes_d_un_inconnu_n_apparaissent_pas(self, client):
+        compte = FabriqueCompte(foyer=espace_de().foyer, nom="Compte secret")
+        client.force_login(_membre_d_un_foyer().utilisateur)
+
+        assert "Compte secret" not in _comptes_affiches(client)
+        assert client.get(reverse("banque:compte", args=[compte.pk])).status_code == 404
+        assert "secret" not in client.get(reverse("banque:operations")).content.decode()
+
+    def test_une_session_falsifiee_ne_donne_pas_un_autre_foyer(self, client):
+        etranger = FabriqueAdhesion()
+        FabriqueCompte(foyer=espace_de(etranger.utilisateur).foyer, nom="Compte secret")
         alice = _membre_d_un_foyer()
         client.force_login(alice.utilisateur)
-
-        assert client.post(reverse("foyers:espace", args=[inconnu.foyer_id])).status_code == 404
-        assert client.session.get(CLE_SESSION_ESPACE) != inconnu.foyer_id
-
-    def test_une_session_falsifiee_retombe_sur_son_propre_espace(self, client):
-        inconnu = espace_de()
-        FabriqueCompte(foyer=inconnu.foyer, nom="Compte secret")
-        alice = _membre_d_un_foyer()
-        client.force_login(alice.utilisateur)
-        voir_espace(client, inconnu)
+        session = client.session
+        session[CLE_SESSION_FOYER] = etranger.foyer_id
+        session.save()
 
         reponse = client.get(reverse("banque:comptes"))
 
-        assert reponse.context["adhesion_espace"].foyer.personne == alice.utilisateur
-        assert inconnu.foyer not in [e.foyer for e in reponse.context["espaces"]]
+        assert reponse.context["adhesion_foyer"] == alice
         assert "secret" not in reponse.content.decode()
-
-    def test_les_objets_d_un_inconnu_restent_introuvables(self, client):
-        compte = FabriqueCompte(foyer=espace_de().foyer)
-        client.force_login(_membre_d_un_foyer().utilisateur)
-
-        assert client.get(reverse("banque:compte", args=[compte.pk])).status_code == 404
 
     def test_un_membre_retire_perd_aussitot_l_acces(self, client):
         dorian = espace_de()
         FabriqueCompte(foyer=dorian.foyer, nom="Compte de Dorian")
         ex = acces_a(dorian)
         client.force_login(ex.utilisateur)
-        voir_espace(client, dorian)
-        assert "Compte de Dorian" in client.get(reverse("banque:comptes")).content.decode()
+        assert "Compte de Dorian" in _comptes_affiches(client)
 
         ex.delete()
 
-        reponse = client.get(reverse("banque:comptes"))
-        assert reponse.context["adhesion_espace"].foyer.personne == ex.utilisateur
-        assert "Dorian" not in reponse.content.decode()
+        assert "Compte de Dorian" not in _comptes_affiches(client)
 
-    def test_un_lecteur_ne_modifie_pas_l_espace_d_un_membre(self, client):
-        dorian = espace_de()
-        compte = FabriqueCompte(
-            foyer=dorian.foyer, solde_initial=D("10"), ouvert_le=date(2026, 1, 1)
-        )
-        lecteur = acces_a(dorian, Role.LECTEUR)
-        client.force_login(lecteur.utilisateur)
-        voir_espace(client, dorian)
-
-        assert client.get(reverse("banque:comptes")).status_code == 200
-        assert client.post(reverse("banque:archiver_compte", args=[compte.pk])).status_code == 403
-
-    def test_un_foyer_partage_ne_donne_pas_acces_a_un_autre_foyer_partage(self, client):
-        dorian = espace_de()
-        alexandra = acces_a(dorian)
-        autre_foyer = FabriqueFoyer()
-        client.force_login(alexandra.utilisateur)
-        session = client.session
-        session[CLE_SESSION_FOYER] = autre_foyer.pk
-        session.save()
-
-        reponse = client.get(reverse("documents:liste"))
-
-        assert reponse.context["adhesion_courante"].foyer == alexandra.foyer
-
-
-class TestComptesDesAutresMembres:
-    def test_on_voit_les_comptes_des_autres_sous_les_siens(self, client):
-        dorian = espace_de(FabriqueUtilisateur(first_name="Dorian"))
-        FabriqueCompte(foyer=dorian.foyer, nom="Courant SG Dorian", etablissement="SG")
-        alexandra = acces_a(dorian)
-        FabriqueCompte(foyer=espace_de(alexandra.utilisateur).foyer, nom="Bourso Alexandra")
-        FabriqueCompte(foyer=espace_de().foyer, nom="Compte d'un inconnu")
-        client.force_login(alexandra.utilisateur)
-
-        reponse = client.get(reverse("banque:comptes"))
-        contenu = reponse.content.decode()
-
-        assert "Bourso Alexandra" in contenu and "Comptes de Dorian" in contenu
-        assert "Courant SG Dorian" in contenu and "inconnu" not in contenu
-        assert [a["personne"] for a in reponse.context["autres"]] == [dorian.utilisateur]
-
-    def test_cliquer_un_compte_d_un_autre_l_ouvre_dans_ses_finances(self, client):
-        dorian = espace_de()
-        compte = FabriqueCompte(foyer=dorian.foyer)
-        alexandra = acces_a(dorian)
-        client.force_login(alexandra.utilisateur)
+    def test_impossible_d_ecrire_sur_le_compte_d_un_inconnu(self, client):
+        compte = FabriqueCompte(foyer=espace_de().foyer, ouvert_le=date(2026, 1, 1))
+        client.force_login(_membre_d_un_foyer().utilisateur)
 
         reponse = client.post(
-            reverse("foyers:espace", args=[dorian.foyer_id]),
-            {"next": reverse("banque:compte", args=[compte.pk])},
+            reverse("banque:ajouter_operation"),
+            {
+                "compte": compte.pk,
+                "date": "2026-03-01",
+                "libelle": "x",
+                "sens": "depense",
+                "montant": "1",
+            },
         )
 
-        assert reponse.url == reverse("banque:compte", args=[compte.pk])
-        assert client.get(reponse.url).status_code == 200
+        assert reponse.status_code == 200 and not Operation.objects.exists()
 
-    def test_le_retour_ne_sort_pas_du_site(self, client):
-        dorian = espace_de()
-        alexandra = acces_a(dorian)
-        client.force_login(alexandra.utilisateur)
 
-        reponse = client.post(
-            reverse("foyers:espace", args=[dorian.foyer_id]), {"next": "https://pirate.example"}
+class TestClassementCommun:
+    def test_un_nouveau_foyer_part_des_categories_de_son_createur(self):
+        dorian = FabriqueUtilisateur()
+        espace = espace_personnel(dorian)
+
+        foyer = creer_foyer(utilisateur=dorian, nom="Maison")
+
+        noms = set(Categorie.objects.filter(foyer=foyer).values_list("nom", flat=True))
+        assert noms and noms == set(
+            Categorie.objects.filter(foyer=espace).values_list("nom", flat=True)
         )
 
-        assert reponse.url == reverse("accueil")
+    def test_dans_un_foyer_les_categories_sont_celles_du_foyer(self, client):
+        alexandra = acces_a(espace_de())
+        client.force_login(alexandra.utilisateur)
 
-    def test_sur_les_finances_d_un_autre_on_ne_liste_que_les_siennes(self, client):
+        client.post(reverse("banque:ajouter_categorie"), {"nom": "Animaux", "nature": "depense"})
+
+        assert Categorie.objects.get(nom="Animaux").foyer == alexandra.foyer
+
+    def test_le_budget_du_foyer_range_les_categories_de_chacun_par_nom(self):
         dorian = espace_de()
         alexandra = acces_a(dorian)
-        client.force_login(alexandra.utilisateur)
-        voir_espace(client, dorian)
+        courses_foyer = FabriqueSousCategorie(
+            parent__foyer=alexandra.foyer, parent__nom="Alimentation", nom="Courses"
+        )
+        courses_dorian = FabriqueSousCategorie(
+            parent__foyer=dorian.foyer, parent__nom="ALIMENTATION", nom="courses"
+        )
+        compte_dorian = FabriqueCompte(foyer=dorian.foyer)
+        compte_alexandra = FabriqueCompte(foyer=espace_de(alexandra.utilisateur).foyer)
+        FabriqueOperation(
+            compte=compte_dorian, categorie=courses_dorian, montant=D("-30"), date=date(2026, 3, 2)
+        )
+        FabriqueOperation(
+            compte=compte_alexandra,
+            categorie=courses_foyer,
+            montant=D("-20"),
+            date=date(2026, 3, 3),
+        )
 
-        assert client.get(reverse("banque:comptes")).context["autres"] == []
+        tableau = tableau_mensuel(_perimetre_de(alexandra), 2026, 3)
+
+        alimentation = next(
+            ligne for ligne in tableau.depenses if ligne.categorie.nom == "Alimentation"
+        )
+        assert alimentation.sous_lignes[0].realise == D("50")
+        assert tableau.depenses_non_classees == 0
+
+    def test_sans_equivalent_dans_le_foyer_l_operation_est_a_classer(self):
+        dorian = espace_de()
+        alexandra = acces_a(dorian)
+        exotique = FabriqueSousCategorie(parent__foyer=dorian.foyer, nom="Exotique")
+        FabriqueOperation(
+            compte=FabriqueCompte(foyer=dorian.foyer),
+            categorie=exotique,
+            montant=D("-7"),
+            date=date(2026, 3, 2),
+        )
+
+        tableau = tableau_mensuel(_perimetre_de(alexandra), 2026, 3)
+
+        assert tableau.depenses_non_classees == D("7")

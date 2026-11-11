@@ -83,6 +83,12 @@ class Compte(ModeleDeFoyer):
         return self.nom
 
     @property
+    def proprietaire(self) -> str:
+        """Prénom (à défaut, adresse) de la personne dont c'est le compte."""
+        personne = self.foyer.personne
+        return (personne.first_name or personne.email) if personne else ""
+
+    @property
     def est_valorise(self) -> bool:
         return self.type in TYPES_VALORISES
 
@@ -122,6 +128,9 @@ class Categorie(ModeleDeFoyer):
 
     Les opérations se rangent uniquement dans des sous-catégories.
     """
+
+    # Commun à tout le foyer (voir socle.perimetre), pas à l'espace d'une personne.
+    porte_le_classement = True
 
     nom = models.CharField(_("nom"), max_length=100)
     nature = models.CharField(
@@ -248,12 +257,31 @@ class Operation(ModeleDeFoyer):
     def clean(self) -> None:
         if self.compte_id and self.compte.foyer_id != self.foyer_id:
             raise ValidationError(_("Le compte appartient à un autre foyer."))
-        if self.categorie_id and self.categorie.foyer_id != self.foyer_id:  # type: ignore[union-attr]
+        if self.categorie_id and not self._categorie_autorisee():
             raise ValidationError(_("La catégorie appartient à un autre foyer."))
+
+    def _categorie_autorisee(self) -> bool:
+        """Une catégorie de son espace, ou du classement d'un foyer dont le titulaire du
+        compte est membre (les catégories d'un foyer sont communes à ses membres)."""
+        from apps.foyers.models import Adhesion
+
+        categorie = self.categorie
+        if categorie is None or categorie.foyer_id == self.foyer_id:
+            return True
+        titulaire = self.foyer.personne_id
+        return (
+            titulaire is not None
+            and Adhesion.objects.filter(
+                foyer_id=categorie.foyer_id, utilisateur_id=titulaire, foyer__personne__isnull=True
+            ).exists()
+        )
 
 
 class RegleCategorisation(ModeleDeFoyer):
     """« Libellé contient <motif> » → sous-catégorie. Le motif le plus long l'emporte."""
+
+    # Commun à tout le foyer (voir socle.perimetre), pas à l'espace d'une personne.
+    porte_le_classement = True
 
     motif = models.CharField(
         _("le libellé contient"),

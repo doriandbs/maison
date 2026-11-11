@@ -16,6 +16,8 @@ def foyer_courant(request: HttpRequest) -> dict[str, Any]:
         "adhesion_foyer": getattr(request, "adhesion_foyer", None),
         "adhesions": getattr(request, "adhesions", []),
         "espaces": getattr(request, "espaces", []),
+        # Plusieurs personnes à l'écran : on affiche le titulaire de chaque compte.
+        "plusieurs_titulaires": len(getattr(request, "espaces", [])) > 1,
         "peut_modifier": adhesion is not None and adhesion.a_au_moins(Role.MEMBRE),
         "peut_administrer": adhesion is not None and adhesion.a_au_moins(Role.ADMINISTRATEUR),
     }

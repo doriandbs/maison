@@ -1,4 +1,4 @@
-# ADR 0006 – Finances personnelles, foyers partagés
+# ADR 0006 – Finances personnelles, foyers réunis
 
 Date : 2026-11-11 · Statut : accepté · Remplace en partie l'ADR 0002 (où vivent les comptes)
 
@@ -6,43 +6,42 @@ Date : 2026-11-11 · Statut : accepté · Remplace en partie l'ADR 0002 (où viv
 
 Un compte bancaire appartient à une personne, pas à un foyer : le même compte doit montrer le
 même solde quel que soit le foyer d'où on le regarde, et on doit pouvoir gérer ses comptes sans
-appartenir à aucun foyer.
+appartenir à aucun foyer. Dans un foyer, tout doit pourtant se voir et se gérer ensemble, dans
+les mêmes écrans, en distinguant seulement à qui appartient chaque compte.
 
 ## Décision
 
-- **Chaque personne a un espace financier personnel** : comptes, opérations, imports,
-  catégories, règles, budget, récap, crédits. Techniquement, c'est une ligne `Foyer` dont
-  `personne` est renseignée, créée à la première connexion avec les catégories par défaut.
-  Elle n'est jamais présentée comme un foyer (ni listée, ni « activable »). Tout le code
-  « par foyer » (isolation, `du_foyer`, tests d'accès croisés) s'applique donc tel quel.
-- **Un foyer partagé** (`personne` vide) regroupe des personnes et leurs **documents**. Il n'a
-  plus de finances ; les documents ne sont plus reliés à des comptes ni à des opérations.
-- **Accès croisé** : dans un foyer partagé, chaque membre accède à l'espace des autres membres
-  avec le rôle qu'il a dans ce foyer (lecture seule → consultation, membre et plus →
-  modification). Le sélecteur « Finances de » ne propose que les membres du foyer courant.
-- **Deux contextes par requête** (`IntergicielFoyerCourant`) : `adhesion_foyer` (foyer
-  partagé courant) et `adhesion` (espace affiché, adhésion calculée et jamais enregistrée pour
-  l'espace d'un autre). Chaque vue déclare sa `portee` : « finances » ou « foyer ».
-- Tout est relu en base à chaque requête : un membre retiré du foyer perd aussitôt l'accès aux
-  espaces des autres, même si sa session les désigne encore.
+- **Chaque personne a un espace** : ses comptes, opérations, relevés et crédits. C'est une
+  ligne `Foyer` dont `personne` est renseignée, créée à la première connexion avec les
+  catégories par défaut, jamais présentée comme un foyer.
+- **Dans un foyer partagé, les écrans de finances réunissent les espaces de tous ses membres**
+  (`socle.perimetre.Perimetre`). Comptes, opérations, crédits, budget, récap et accueil
+  montrent tout le monde ; le titulaire de chaque compte est indiqué. Sans foyer : son espace.
+- **Le classement est commun au foyer** : catégories, règles d'import et budget prévisionnel
+  appartiennent au foyer (`porte_le_classement`). Un nouveau foyer part de ceux de son
+  créateur. Les opérations restent dans l'espace de leur compte ; le budget du foyer range
+  chaque opération **par nom de catégorie** (« Alimentation › Courses » d'une personne compte
+  dans celle du foyer), ce qui évite toute migration quand quelqu'un rejoint un foyer.
+- **Droits** : dans un foyer, son rôle s'applique à tout l'écran (lecture seule → consultation,
+  membre et plus → modification, comptes des autres compris). Sans foyer : propriétaire.
+- **Crédit à plusieurs** : des co-emprunteurs, choisis parmi les personnes avec qui l'on partage
+  un foyer, ont les mêmes droits que celui qui l'a saisi, même hors de ce foyer. Le crédit
+  compte en entier dans le patrimoine de chacun, et une seule fois dans celui du foyer.
+- **Documents** : au foyer, sans lien avec les comptes ni les opérations.
+- `du_foyer()` et `FormulaireDeFoyer` acceptent un périmètre : vues et services sont restés
+  ceux d'un foyer unique. Tout est relu à chaque requête : un membre retiré perd aussitôt
+  l'accès aux comptes des autres.
 
-- **Comptes des autres membres** : sur sa propre page Comptes, on voit en dessous ceux des autres
-  membres du foyer courant ; en ouvrir un bascule sur les finances de cette personne.
-- **Crédit à plusieurs** : un prêt reste dans l'espace de qui le saisit, avec des
-  **co-emprunteurs** choisis parmi les personnes avec qui il partage un foyer. Il apparaît dans
-  leurs crédits ; ils y enregistrent des remboursements anticipés, mais ses conditions ne se
-  modifient que depuis l'espace d'origine. Dans le patrimoine, chacun compte une **part égale**
-  de la dette et du bien : la vue « Ensemble » ne les compte qu'une fois.
+## Migrations
 
-## Migration
-
-`foyers/0003` crée l'espace de chaque utilisateur et y range les finances de chaque foyer
-partagé : celles-ci vont au propriétaire le plus ancien du foyer. Les catégories de même nom
-sont fusionnées, un compte dont le nom est déjà pris est renommé. Rien n'est supprimé.
+- `foyers/0003` : crée l'espace de chacun et y range les finances de chaque foyer partagé
+  (au propriétaire le plus ancien) ; les documents restent au foyer. Rien n'est supprimé.
+- `foyers/0004` : chaque foyer partagé reçoit un classement commun, recopié de l'espace de son
+  propriétaire (catégories, règles, budget).
 
 ## Conséquences
 
-- La fonction « déplacer des comptes vers un autre foyer » disparaît : un compte n'est plus
-  dans un foyer.
-- Un compte joint vit dans l'espace de celui qui le crée ; l'autre titulaire le voit et le
-  gère par le foyer qu'ils partagent.
+- Un compte joint vit dans l'espace de qui le crée ; l'autre titulaire le voit et le gère dans
+  le foyer qu'ils partagent.
+- Quelqu'un de plusieurs foyers voit, dans chacun, les comptes de ses membres : les comptes
+  de ses parents dans le foyer « Parents », ceux de son couple dans le foyer du couple.

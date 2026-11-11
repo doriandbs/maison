@@ -12,6 +12,7 @@ from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
 from apps.socle.models import ModeleDeFoyer, RequeteDeFoyer
+from apps.socle.perimetre import Perimetre
 
 if TYPE_CHECKING:
     from apps.foyers.models import Foyer
@@ -39,11 +40,14 @@ class EffetAnticipe(models.TextChoices):
 
 
 class RequetePret(RequeteDeFoyer):
-    def visibles_dans(self, espace: Foyer) -> Self:
-        """Les prêts de cet espace, et ceux où son titulaire est co-emprunteur."""
-        filtre = Q(foyer=espace)
-        if espace.personne_id is not None:
-            filtre |= Q(co_emprunteurs=espace.personne_id)
+    def visibles_dans(self, espace: Foyer | Perimetre) -> Self:
+        """Les prêts de ces espaces, et ceux où l'un de leurs titulaires est co-emprunteur.
+
+        Un co-emprunteur a les mêmes droits que celui qui a saisi le prêt.
+        """
+        espaces = espace.espaces if isinstance(espace, Perimetre) else (espace,)
+        titulaires = [e.personne_id for e in espaces if e.personne_id is not None]
+        filtre = Q(foyer__in=espaces) | Q(co_emprunteurs__in=titulaires)
         return self.filter(filtre).distinct()
 
 
@@ -104,10 +108,7 @@ class Pret(ModeleDeFoyer):
         verbose_name=_("co-emprunteurs"),
         blank=True,
         related_name="prets_partages",
-        help_text=_(
-            "Le crédit apparaît aussi dans leurs finances ; chacun en compte une part égale "
-            "dans son patrimoine."
-        ),
+        help_text=_("Ils voient et gèrent ce crédit comme vous."),
     )
     valeur_bien = models.DecimalField(
         _("valeur estimée du bien"),

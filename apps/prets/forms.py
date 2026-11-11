@@ -53,16 +53,15 @@ class FormulairePret(FormulaireDeFoyer):
         )
         # Ajouté après la vérification de FormulaireDeFoyer : ce sont des personnes, pas des
         # données d'un foyer. Seules celles avec qui l'on partage un foyer sont proposées.
-        titulaire = self.foyer.personne
+        # Proches de celui qui a saisi le prêt (pas forcément de qui le modifie).
+        espace = self.instance.foyer if self.instance.pk else self.perimetre.espace_propre
+        titulaire = espace.personne
         self.fields["co_emprunteurs"] = forms.ModelMultipleChoiceField(
             label=_("Co-emprunteurs"),
             queryset=proches(titulaire) if titulaire else Utilisateur.objects.none(),
             required=False,
             widget=forms.CheckboxSelectMultiple,
-            help_text=_(
-                "Le crédit apparaîtra aussi dans leurs finances ; chacun en compte une part "
-                "égale dans son patrimoine."
-            ),
+            help_text=_("Ils verront et géreront ce crédit comme vous."),
         )
         self.fields["co_emprunteurs"].label_from_instance = (  # type: ignore[attr-defined]
             lambda personne: personne.first_name or personne.email

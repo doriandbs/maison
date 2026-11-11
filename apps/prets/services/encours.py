@@ -10,6 +10,7 @@ from itertools import groupby
 
 from apps.foyers.models import Foyer
 from apps.prets.models import Pret
+from apps.socle.perimetre import Perimetre
 
 from .amortissement import ZERO, Echeance, Tableau
 
@@ -23,11 +24,6 @@ class Encours:
     @property
     def emprunteurs(self) -> int:
         return 1 + len(self.pret.co_emprunteurs.all())
-
-    @property
-    def part(self) -> Decimal:
-        """Part de ce crédit portée par chacun : égale entre tous les emprunteurs."""
-        return Decimal(1) / self.emprunteurs
 
     @property
     def a_commence(self) -> bool:
@@ -71,7 +67,7 @@ class Encours:
         return prochaine is not None and prochaine.en_differe
 
 
-def encours_du_foyer(foyer: Foyer, a_date: date) -> list[Encours]:
+def encours_du_foyer(foyer: Foyer | Perimetre, a_date: date) -> list[Encours]:
     """Crédits de cet espace, y compris ceux dont son titulaire est co-emprunteur."""
     prets = (
         Pret.objects.visibles_dans(foyer)
@@ -81,21 +77,14 @@ def encours_du_foyer(foyer: Foyer, a_date: date) -> list[Encours]:
     return [Encours(pret, pret.tableau(), a_date) for pret in prets]
 
 
-def _part(montant: Decimal, encours: Encours) -> Decimal:
-    return (montant * encours.part).quantize(Decimal("0.01"))
-
-
 def total_dettes(encours: Iterable[Encours]) -> Decimal:
-    """Capital restant dû, chacun pour sa part : un crédit à deux compte pour moitié."""
-    return sum((_part(e.capital_restant_du, e) for e in encours), ZERO)
+    """Capital restant dû. Un crédit à plusieurs n'est compté qu'une fois dans un foyer."""
+    return sum((e.capital_restant_du for e in encours), ZERO)
 
 
 def total_biens(encours: Iterable[Encours]) -> Decimal:
     """Valeur des biens financés, à partir du même moment que la dette (voir `a_commence`)."""
-    return sum(
-        (_part(e.pret.valeur_bien, e) for e in encours if e.pret.valeur_bien and e.a_commence),
-        ZERO,
-    )
+    return sum((e.pret.valeur_bien for e in encours if e.pret.valeur_bien and e.a_commence), ZERO)
 
 
 @dataclass

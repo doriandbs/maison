@@ -8,7 +8,6 @@ from apps.foyers.models import Role
 from apps.foyers.tests.fabriques import acces_a, espace_de
 from apps.prets.models import Pret, RemboursementAnticipe
 from apps.prets.services.encours import encours_du_foyer, total_biens, total_dettes
-from apps.tableau_de_bord.ensemble import ensemble
 from apps.utilisateurs.tests.fabriques import FabriqueUtilisateur
 
 from .fabriques import FabriquePret, FabriqueRemboursement
@@ -82,27 +81,39 @@ class TestVisibilite:
         detail = client.get(reverse("prets:pret", args=[pret.pk]))
 
         assert "Maison de Poissy" in liste
-        assert detail.status_code == 200 and not detail.context["est_gere_ici"]
-        assert "Saisi par Dorian" in detail.content.decode()
+        assert detail.status_code == 200
 
-    def test_le_co_emprunteur_enregistre_un_remboursement_mais_ne_modifie_pas_le_pret(
-        self, client, couple
-    ):
+    def test_le_co_emprunteur_a_les_memes_droits(self, client, couple):
         dorian, alexandra, _ = couple
         pret = _credit_a_deux(dorian, alexandra)
         client.force_login(alexandra.utilisateur)
+        client.get("/")  # crée son espace
 
         client.post(
             reverse("prets:ajouter_anticipe", args=[pret.pk]),
             {"date": "2030-01-01", "montant": "1000", "effet": "duree"},
         )
-        remboursement = RemboursementAnticipe.objects.get()
-        assert (remboursement.foyer, remboursement.pret) == (dorian.foyer, pret)
-        client.post(reverse("prets:supprimer_anticipe", args=[remboursement.pk]))
-        assert not RemboursementAnticipe.objects.exists()
+        assert RemboursementAnticipe.objects.get().pret == pret
+        client.post(
+            reverse("prets:modifier", args=[pret.pk]),
+            DONNEES | {"nom": "Renommé", "co_emprunteurs": [alexandra.utilisateur.pk]},
+        )
+        pret.refresh_from_db()
+        assert pret.nom == "Renommé" and pret.foyer == dorian.foyer
+        client.post(reverse("prets:supprimer", args=[pret.pk]))
+        assert not Pret.objects.exists()
 
-        assert client.post(reverse("prets:modifier", args=[pret.pk]), DONNEES).status_code == 404
-        assert client.post(reverse("prets:supprimer", args=[pret.pk])).status_code == 404
+    def test_hors_du_foyer_le_co_emprunteur_le_garde(self, client):
+        """Même sans foyer commun courant, le co-emprunteur voit et modifie le prêt."""
+        dorian = espace_de()
+        alexandra = espace_de()
+        pret = _credit_a_deux(dorian, alexandra)
+        client.force_login(alexandra.utilisateur)
+
+        assert client.get(reverse("prets:pret", args=[pret.pk])).status_code == 200
+        client.post(reverse("prets:modifier", args=[pret.pk]), DONNEES | {"nom": "Ailleurs"})
+        pret.refresh_from_db()
+        assert pret.nom == "Ailleurs"
 
     def test_un_tiers_ne_voit_rien(self, client, couple):
         dorian, alexandra, _ = couple
@@ -116,7 +127,7 @@ class TestVisibilite:
 
 
 class TestPatrimoine:
-    def test_chacun_compte_sa_part(self, couple):
+    def test_chacun_le_compte_en_entier(self, couple):
         dorian, alexandra, _ = couple
         _credit_a_deux(dorian, alexandra, signe_le=date(2025, 12, 1))
         jour = date(2025, 12, 15)
@@ -124,17 +135,15 @@ class TestPatrimoine:
         pour_dorian = encours_du_foyer(dorian.foyer, jour)
         pour_alexandra = encours_du_foyer(alexandra.foyer, jour)
 
-        assert total_dettes(pour_dorian) == total_dettes(pour_alexandra) == D("100000")
-        assert total_biens(pour_dorian) == total_biens(pour_alexandra) == D("150000")
+        assert total_dettes(pour_dorian) == total_dettes(pour_alexandra) == D("200000")
+        assert total_biens(pour_dorian) == total_biens(pour_alexandra) == D("300000")
 
-    def test_l_ensemble_du_foyer_ne_compte_pas_le_credit_deux_fois(self, client, couple):
-        dorian, alexandra, foyer_commun = couple
+    def test_le_foyer_ne_le_compte_qu_une_fois(self, client, couple):
+        dorian, alexandra, _ = couple
         _credit_a_deux(dorian, alexandra, signe_le=date(2025, 12, 1))
         client.force_login(alexandra.utilisateur)
-        client.get("/")
 
-        vue = ensemble(
-            client.get("/").wsgi_request.espaces, foyer_commun.foyer, 12, date(2025, 12, 15)
-        )
+        synthese = client.get("/").context["synthese"]
 
-        assert vue.dettes == D("200000") and vue.biens == D("300000")
+        un_seul = total_dettes(encours_du_foyer(dorian.foyer, synthese.aujourd_hui))
+        assert synthese.dettes == un_seul and synthese.biens == D("300000")

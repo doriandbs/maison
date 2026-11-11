@@ -196,7 +196,7 @@
           <span class="vignette text-sm font-semibold">{{ ligne.compte.nom|first|upper }}</span>
           <span class="min-w-0 flex-1">
             <span class="block truncate font-medium">{{ ligne.compte.nom }}</span>
-            <span class="block text-xs text-texte-discret">{{ ligne.compte.get_type_display }}</span>
+            <span class="block text-xs text-texte-discret">{{ ligne.compte.get_type_display }}{% if plusieurs_titulaires %} · {{ ligne.compte.proprietaire }}{% endif %}</span>
           </span>
           <span class="montant font-semibold {% if ligne.solde < 0 %}text-danger{% endif %}">{{ ligne.solde|euros }}</span>
         </a>
@@ -217,7 +217,7 @@
         <span class="vignette {% if operation.montant < 0 %}vignette-sortie{% else %}vignette-entree{% endif %}">{% if operation.montant < 0 %}{% icone "baisse" classe="size-4" %}{% else %}{% icone "hausse" classe="size-4" %}{% endif %}</span>
         <span class="min-w-0 flex-1">
           <span class="block truncate font-medium">{{ operation.libelle }}</span>
-          <span class="block text-xs text-texte-discret">{{ operation.date|date:"j M" }} · {{ operation.compte.nom }}</span>
+          <span class="block text-xs text-texte-discret">{{ operation.date|date:"j M" }} · {{ operation.compte.nom }}{% if plusieurs_titulaires %} · {{ operation.compte.proprietaire }}{% endif %}</span>
         </span>
         <span class="montant font-semibold {% if operation.montant > 0 %}text-succes{% endif %}">{{ operation.montant|euros }}</span>
       </li>
