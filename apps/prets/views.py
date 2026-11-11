@@ -28,6 +28,7 @@ class VuePrets(AccesFoyerMixin, TemplateView):
         contexte["encours"] = [e for e in encours if not e.est_termine]
         contexte["termines"] = [e for e in encours if e.est_termine]
         contexte["total_du"] = service_encours.total_dettes(encours)
+        contexte["partages"] = any(e.emprunteurs > 1 for e in encours)
         contexte["total_mensualites"] = sum(
             (e.prochaine_echeance.total for e in encours if e.prochaine_echeance), 0
         )
@@ -40,7 +41,12 @@ class VuePret(VueDeFoyerMixin, DetailView):
     context_object_name = "pret"
 
     def get_queryset(self) -> Any:
-        return super().get_queryset().select_related("compte").prefetch_related("remboursements")
+        # Ses prêts, et ceux dont le titulaire de l'espace est co-emprunteur.
+        return (
+            Pret.objects.visibles_dans(self.foyer)
+            .select_related("compte", "foyer__personne")
+            .prefetch_related("remboursements", "co_emprunteurs")
+        )
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         contexte = super().get_context_data(**kwargs)
@@ -51,6 +57,8 @@ class VuePret(VueDeFoyerMixin, DetailView):
         contexte["tableau"] = tableau
         contexte["annees"] = service_encours.par_annee(tableau, aujourd_hui)
         contexte["formulaire_anticipe"] = FormulaireAnticipe(foyer=self.foyer)
+        # Les conditions du prêt ne se modifient que depuis l'espace où il a été saisi.
+        contexte["est_gere_ici"] = pret.foyer_id == self.foyer.pk
 
         # La simulation passe par GET : rien n'est enregistré, l'adresse se partage.
         formulaire = FormulaireSimulation(
@@ -105,8 +113,9 @@ class VueSupprimerPret(VueDeFoyerMixin, DeleteView):
 
 class VueAjouterAnticipe(AccesFoyerMixin, View):
     def post(self, request: HttpRequest, pk: int) -> HttpResponse:
-        pret = get_object_or_404(Pret.objects.du_foyer(self.foyer), pk=pk)
-        formulaire = FormulaireAnticipe(request.POST, foyer=self.foyer)
+        pret = get_object_or_404(Pret.objects.visibles_dans(self.foyer), pk=pk)
+        # Rattaché à l'espace du prêt, même enregistré par un co-emprunteur.
+        formulaire = FormulaireAnticipe(request.POST, foyer=pret.foyer)
         if formulaire.is_valid():
             remboursement = formulaire.save(commit=False)
             remboursement.pret = pret
@@ -119,6 +128,9 @@ class VueAjouterAnticipe(AccesFoyerMixin, View):
 
 class VueSupprimerAnticipe(AccesFoyerMixin, View):
     def post(self, request: HttpRequest, pk: int) -> HttpResponse:
-        remboursement = get_object_or_404(RemboursementAnticipe.objects.du_foyer(self.foyer), pk=pk)
+        remboursement = get_object_or_404(
+            RemboursementAnticipe.objects.filter(pret__in=Pret.objects.visibles_dans(self.foyer)),
+            pk=pk,
+        )
         remboursement.delete()
         return redirect("prets:pret", pk=remboursement.pret_id)

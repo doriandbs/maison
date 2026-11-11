@@ -8,6 +8,7 @@ qu'il a dans ce foyer : lecture seule → consultation, membre et plus → modif
 from __future__ import annotations
 
 from django.db import transaction
+from django.db.models import QuerySet
 
 from apps.utilisateurs.models import Utilisateur
 
@@ -66,3 +67,14 @@ def acces_aux_espaces(utilisateur: Utilisateur, foyer_partage: Foyer | None) -> 
         espace = espaces.get(membre.utilisateur_id) or espace_personnel(membre.utilisateur)
         acces.append(Adhesion(foyer=espace, utilisateur=utilisateur, role=mon_role))
     return acces
+
+
+def proches(utilisateur: Utilisateur) -> QuerySet[Utilisateur]:
+    """Les personnes avec qui l'on partage au moins un foyer (pour un crédit à plusieurs)."""
+    foyers = Foyer.objects.filter(personne__isnull=True, adhesions__utilisateur=utilisateur)
+    return (
+        Utilisateur.objects.filter(adhesions__foyer__in=foyers)
+        .exclude(pk=utilisateur.pk)
+        .distinct()
+        .order_by("first_name", "email")
+    )

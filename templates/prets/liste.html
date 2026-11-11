@@ -12,6 +12,7 @@
   <div class="carte">
     <p class="libelle-indicateur">{% translate "Capital restant dû" %}</p>
     <p class="indicateur" data-compteur="{{ total_du|valeur_brute }}">{{ total_du|euros }}</p>
+    {% if partages %}<p class="aide">{% translate "votre part des crédits à plusieurs" %}</p>{% endif %}
   </div>
   <div class="carte">
     <p class="libelle-indicateur">{% translate "Prochaines échéances" %}</p>
@@ -28,7 +29,10 @@
         <h2 class="truncate">{{ element.pret.nom }}</h2>
         <p class="text-xs text-texte-discret">{{ element.pret.etablissement|default:"" }}{% if element.pret.etablissement %} · {% endif %}{{ element.pret.taux_annuel|floatformat:"-3" }} %</p>
       </div>
-      {% if element.en_differe %}<span class="pastille-alerte">{% translate "différé" %}</span>{% endif %}
+      <span class="flex flex-wrap justify-end gap-1">
+        {% if element.emprunteurs > 1 %}<span class="pastille">{% blocktranslate with n=element.emprunteurs %}à {{ n }}{% endblocktranslate %}</span>{% endif %}
+        {% if element.en_differe %}<span class="pastille-alerte">{% translate "différé" %}</span>{% endif %}
+      </span>
     </div>
     <div>
       {% if element.a_commence %}

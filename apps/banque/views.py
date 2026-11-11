@@ -1,4 +1,5 @@
 from datetime import date
+from decimal import Decimal
 from typing import Any
 
 from django.contrib import messages
@@ -63,7 +64,29 @@ class VueComptes(AccesFoyerMixin, TemplateView):
         contexte["groupes"] = regrouper_par_etablissement(actifs, soldes)
         contexte["comptes_archives"] = [compte for compte in comptes if compte.est_archive]
         contexte["total"] = sum(compte.solde for compte in actifs)  # type: ignore[attr-defined]
+        contexte["autres"] = self._comptes_des_autres_membres()
         return contexte
+
+    def _comptes_des_autres_membres(self) -> list[dict[str, Any]]:
+        """Sur ses propres comptes, ceux des autres membres du foyer courant, en dessous.
+
+        Les espaces viennent de `request.espaces` : seulement ceux que le foyer courant ouvre.
+        """
+        if self.foyer.personne_id != self.request.user.pk:
+            return []
+        autres = []
+        for acces in self.request.espaces[1:]:  # type: ignore[attr-defined]
+            soldes = service_soldes.soldes_des_comptes(acces.foyer)
+            comptes = list(Compte.objects.du_foyer(acces.foyer).actifs())
+            autres.append(
+                {
+                    "acces": acces,
+                    "personne": acces.foyer.personne,
+                    "groupes": regrouper_par_etablissement(comptes, soldes),
+                    "total": sum((soldes[c.pk] for c in comptes), Decimal(0)),
+                }
+            )
+        return autres
 
 
 class VueCompte(VueDeFoyerMixin, DetailView):

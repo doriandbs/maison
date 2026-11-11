@@ -5,6 +5,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.translation import gettext as _
 from django.views import View
 from django.views.generic import FormView, TemplateView
@@ -57,6 +58,11 @@ class VueChoisirEspace(LoginRequiredMixin, View):
         if not any(acces.foyer_id == pk for acces in espaces):
             raise Http404
         request.session[CLE_SESSION_ESPACE] = pk
+        # Retour possible vers une page de ses finances (ex. un compte cliqué depuis
+        # « Comptes de Dorian »), jamais vers un autre site.
+        suivante = request.POST.get("next", "")
+        if url_has_allowed_host_and_scheme(suivante, allowed_hosts={request.get_host()}):
+            return redirect(suivante)
         return redirect("accueil")
 
 

@@ -2,13 +2,19 @@ from __future__ import annotations
 
 from datetime import date
 from decimal import Decimal
+from typing import TYPE_CHECKING, Self
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
-from apps.socle.models import ModeleDeFoyer
+from apps.socle.models import ModeleDeFoyer, RequeteDeFoyer
+
+if TYPE_CHECKING:
+    from apps.foyers.models import Foyer
 
 from .services.amortissement import (
     Anticipe,
@@ -30,6 +36,18 @@ class TypeDiffere(models.TextChoices):
 class EffetAnticipe(models.TextChoices):
     DUREE = Effet.DUREE, _("Réduire la durée")
     MENSUALITE = Effet.MENSUALITE, _("Réduire la mensualité")
+
+
+class RequetePret(RequeteDeFoyer):
+    def visibles_dans(self, espace: Foyer) -> Self:
+        """Les prêts de cet espace, et ceux où son titulaire est co-emprunteur."""
+        filtre = Q(foyer=espace)
+        if espace.personne_id is not None:
+            filtre |= Q(co_emprunteurs=espace.personne_id)
+        return self.filter(filtre).distinct()
+
+
+GestionnairePret = models.Manager.from_queryset(RequetePret)
 
 
 class Pret(ModeleDeFoyer):
@@ -81,6 +99,16 @@ class Pret(ModeleDeFoyer):
         on_delete=models.SET_NULL,
         related_name="prets",
     )
+    co_emprunteurs = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        verbose_name=_("co-emprunteurs"),
+        blank=True,
+        related_name="prets_partages",
+        help_text=_(
+            "Le crédit apparaît aussi dans leurs finances ; chacun en compte une part égale "
+            "dans son patrimoine."
+        ),
+    )
     valeur_bien = models.DecimalField(
         _("valeur estimée du bien"),
         max_digits=12,
@@ -92,6 +120,8 @@ class Pret(ModeleDeFoyer):
             "un crédit immobilier ferait paraître le patrimoine négatif."
         ),
     )
+
+    objects = GestionnairePret()  # type: ignore[misc]
 
     class Meta:
         verbose_name = _("prêt")

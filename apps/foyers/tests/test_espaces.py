@@ -179,3 +179,53 @@ class TestIsolation:
         reponse = client.get(reverse("documents:liste"))
 
         assert reponse.context["adhesion_courante"].foyer == alexandra.foyer
+
+
+class TestComptesDesAutresMembres:
+    def test_on_voit_les_comptes_des_autres_sous_les_siens(self, client):
+        dorian = espace_de(FabriqueUtilisateur(first_name="Dorian"))
+        FabriqueCompte(foyer=dorian.foyer, nom="Courant SG Dorian", etablissement="SG")
+        alexandra = acces_a(dorian)
+        FabriqueCompte(foyer=espace_de(alexandra.utilisateur).foyer, nom="Bourso Alexandra")
+        FabriqueCompte(foyer=espace_de().foyer, nom="Compte d'un inconnu")
+        client.force_login(alexandra.utilisateur)
+
+        reponse = client.get(reverse("banque:comptes"))
+        contenu = reponse.content.decode()
+
+        assert "Bourso Alexandra" in contenu and "Comptes de Dorian" in contenu
+        assert "Courant SG Dorian" in contenu and "inconnu" not in contenu
+        assert [a["personne"] for a in reponse.context["autres"]] == [dorian.utilisateur]
+
+    def test_cliquer_un_compte_d_un_autre_l_ouvre_dans_ses_finances(self, client):
+        dorian = espace_de()
+        compte = FabriqueCompte(foyer=dorian.foyer)
+        alexandra = acces_a(dorian)
+        client.force_login(alexandra.utilisateur)
+
+        reponse = client.post(
+            reverse("foyers:espace", args=[dorian.foyer_id]),
+            {"next": reverse("banque:compte", args=[compte.pk])},
+        )
+
+        assert reponse.url == reverse("banque:compte", args=[compte.pk])
+        assert client.get(reponse.url).status_code == 200
+
+    def test_le_retour_ne_sort_pas_du_site(self, client):
+        dorian = espace_de()
+        alexandra = acces_a(dorian)
+        client.force_login(alexandra.utilisateur)
+
+        reponse = client.post(
+            reverse("foyers:espace", args=[dorian.foyer_id]), {"next": "https://pirate.example"}
+        )
+
+        assert reponse.url == reverse("accueil")
+
+    def test_sur_les_finances_d_un_autre_on_ne_liste_que_les_siennes(self, client):
+        dorian = espace_de()
+        alexandra = acces_a(dorian)
+        client.force_login(alexandra.utilisateur)
+        voir_espace(client, dorian)
+
+        assert client.get(reverse("banque:comptes")).context["autres"] == []

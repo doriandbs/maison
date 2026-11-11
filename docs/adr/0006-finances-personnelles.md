@@ -26,6 +26,14 @@ appartenir à aucun foyer.
 - Tout est relu en base à chaque requête : un membre retiré du foyer perd aussitôt l'accès aux
   espaces des autres, même si sa session les désigne encore.
 
+- **Comptes des autres membres** : sur sa propre page Comptes, on voit en dessous ceux des autres
+  membres du foyer courant ; en ouvrir un bascule sur les finances de cette personne.
+- **Crédit à plusieurs** : un prêt reste dans l'espace de qui le saisit, avec des
+  **co-emprunteurs** choisis parmi les personnes avec qui il partage un foyer. Il apparaît dans
+  leurs crédits ; ils y enregistrent des remboursements anticipés, mais ses conditions ne se
+  modifient que depuis l'espace d'origine. Dans le patrimoine, chacun compte une **part égale**
+  de la dette et du bien : la vue « Ensemble » ne les compte qu'une fois.
+
 ## Migration
 
 `foyers/0003` crée l'espace de chaque utilisateur et y range les finances de chaque foyer
