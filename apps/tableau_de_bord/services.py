@@ -139,15 +139,7 @@ def synthese(
     comptes = [
         SoldeCompte(compte, soldes[compte.pk]) for compte in Compte.objects.du_foyer(foyer).actifs()
     ]
-
-    a_payer = (
-        Document.objects.du_foyer(foyer_documents).a_payer()
-        if foyer_documents is not None
-        else Document.objects.none()
-    )
-    # Les plus urgentes d'abord ; une facture sans échéance passe après les autres.
-    factures = a_payer.order_by(F("echeance").asc(nulls_last=True), "date")[:NOMBRE_FACTURES]
-    montant_factures = sum((d.montant or ZERO for d in a_payer.only("montant")), ZERO)
+    factures, nombre_factures, montant_factures = factures_a_payer(foyer_documents, aujourd_hui)
     credits = encours_du_foyer(foyer, aujourd_hui)
 
     return Synthese(
@@ -156,15 +148,31 @@ def synthese(
         aujourd_hui=aujourd_hui,
         comptes=comptes,
         mois=tableau_mensuel(foyer, aujourd_hui.year, aujourd_hui.month),
-        factures=[
-            FactureAPayer(d, en_retard=d.echeance is not None and d.echeance < aujourd_hui)
-            for d in factures
-        ],
-        nombre_factures=a_payer.count(),
+        factures=factures,
+        nombre_factures=nombre_factures,
         montant_factures=montant_factures,
         dernieres_operations=list(
             Operation.objects.du_foyer(foyer)
             .filter(date__lte=aujourd_hui)
             .select_related("compte", "categorie__parent")[:NOMBRE_OPERATIONS]
         ),
+    )
+
+
+def factures_a_payer(
+    foyer: Foyer | None, aujourd_hui: date
+) -> tuple[list[FactureAPayer], int, Decimal]:
+    """Factures à payer d'un foyer partagé : les plus urgentes, leur nombre, leur total."""
+    if foyer is None:
+        return [], 0, ZERO
+    a_payer = Document.objects.du_foyer(foyer).a_payer()
+    # Les plus urgentes d'abord ; une facture sans échéance passe après les autres.
+    premieres = a_payer.order_by(F("echeance").asc(nulls_last=True), "date")[:NOMBRE_FACTURES]
+    return (
+        [
+            FactureAPayer(d, en_retard=d.echeance is not None and d.echeance < aujourd_hui)
+            for d in premieres
+        ],
+        a_payer.count(),
+        sum((d.montant or ZERO for d in a_payer.only("montant")), ZERO),
     )

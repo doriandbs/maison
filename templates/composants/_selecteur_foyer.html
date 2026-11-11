@@ -41,7 +41,7 @@ Deux sélecteurs : le foyer partagé courant (documents, membres) et les finance
       <span class="grid size-8 shrink-0 place-items-center rounded-full bg-surface-2 text-sm font-semibold ring-1 ring-bordure" aria-hidden="true">{{ adhesion_espace.foyer.personne.first_name|default:adhesion_espace.foyer.personne.email|first|upper }}</span>
       <span class="min-w-0 flex-1 text-left">
         {% if not compact %}<span class="block text-xs text-texte-discret">{% translate "Finances de" %}</span>{% endif %}
-        <span class="block truncate font-medium">{% if adhesion_espace.foyer.personne_id == user.pk %}{% translate "moi" %}{% else %}{{ adhesion_espace.foyer.personne.first_name|default:adhesion_espace.foyer.personne.email }}{% endif %}</span>
+        <span class="block truncate font-medium">{% if section_courante == "ensemble" %}{% translate "tout le foyer" %}{% elif adhesion_espace.foyer.personne_id == user.pk %}{% translate "moi" %}{% else %}{{ adhesion_espace.foyer.personne.first_name|default:adhesion_espace.foyer.personne.email }}{% endif %}</span>
       </span>
       {% icone "chevron-bas" classe="size-4 shrink-0 text-texte-discret" %}
       <span class="sr-only">{% translate "Voir les finances d'un autre membre" %}</span>
@@ -57,6 +57,8 @@ Deux sélecteurs : le foyer partagé courant (documents, membres) et les finance
           </button>
         </form>
       {% endfor %}
+      <div class="my-1 border-t border-bordure"></div>
+      <a class="element-menu" href="{% url 'ensemble' %}" {% if section_courante == "ensemble" %}aria-current="true"{% endif %}>{% translate "Ensemble du foyer" %}{% icone "chevron-droite" classe="size-4 text-texte-discret" %}</a>
     </div>
   </details>
   {% endif %}

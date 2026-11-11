@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% load i18n formats icones %}
+{% block titre %}{% translate "Ensemble" %}{% endblock %}
+{% block contenu %}
+<div class="en-tete">
+  <div>
+    <p class="surtitre">{{ ensemble.aujourd_hui|date:"l j F Y" }}</p>
+    <h1>{% blocktranslate with foyer=adhesion_foyer.foyer.nom %}{{ foyer }} : ensemble{% endblocktranslate %}</h1>
+  </div>
+  <span class="pastille-neutre">{% translate "lecture seule" %}</span>
+</div>
+
+<section class="carte-vedette" aria-label="{% translate 'Patrimoine commun' %}">
+  <div class="grid gap-8 md:grid-cols-[1.4fr_1fr] md:items-end">
+    <div>
+      <p class="text-sm font-medium text-white/75">{% translate "Patrimoine net du foyer" %}</p>
+      <p class="mt-1 text-4xl font-semibold tracking-tight tabular-nums sm:text-5xl" data-compteur="{{ ensemble.patrimoine_net|valeur_brute }}">{{ ensemble.patrimoine_net|euros }}</p>
+      <dl class="mt-5 flex flex-wrap gap-x-8 gap-y-3 text-sm">
+        <div><dt class="text-white/70">{% translate "Disponible" %}</dt><dd class="text-lg font-semibold tabular-nums">{{ ensemble.disponible|euros }}</dd></div>
+        <div><dt class="text-white/70">{% translate "Épargne et placements" %}</dt><dd class="text-lg font-semibold tabular-nums">{{ ensemble.epargne|euros }}</dd></div>
+        {% if ensemble.biens %}<div><dt class="text-white/70">{% translate "Biens" %}</dt><dd class="text-lg font-semibold tabular-nums">{{ ensemble.biens|euros }}</dd></div>{% endif %}
+        {% if ensemble.dettes %}<div><dt class="text-white/70">{% translate "Crédits" %}</dt><dd class="text-lg font-semibold tabular-nums">−{{ ensemble.dettes|euros }}</dd></div>{% endif %}
+      </dl>
+    </div>
+    <div class="rounded-2xl bg-white/10 p-4 ring-1 ring-white/15 backdrop-blur-sm">
+      <p class="text-sm font-medium text-white/80">{{ ensemble.aujourd_hui|date:"F"|capfirst }}</p>
+      <dl class="mt-2 space-y-1.5 text-sm">
+        <div class="flex items-center justify-between gap-3"><dt class="flex items-center gap-2 text-white/75">{% icone "hausse" classe="size-4" %}{% translate "Revenus" %}</dt><dd class="font-semibold tabular-nums">{{ ensemble.revenus_du_mois|euros }}</dd></div>
+        <div class="flex items-center justify-between gap-3"><dt class="flex items-center gap-2 text-white/75">{% icone "baisse" classe="size-4" %}{% translate "Dépenses" %}</dt><dd class="font-semibold tabular-nums">{{ ensemble.depenses_du_mois|euros }}</dd></div>
+      </dl>
+    </div>
+  </div>
+</section>
+
+<section class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-label="{% translate 'Par personne' %}">
+  {% for membre in ensemble.membres %}
+  <form method="post" action="{% url 'foyers:espace' membre.acces.foyer_id %}" class="contents">
+    {% csrf_token %}
+    <button class="carte carte-survol cursor-pointer space-y-1 text-left">
+      <span class="flex items-center gap-2">
+        <span class="vignette size-8 rounded-full bg-primaire-50 font-semibold text-primaire-600" aria-hidden="true">{{ membre.personne.first_name|default:membre.personne.email|first|upper }}</span>
+        <span class="libelle-indicateur">{% if membre.personne == user %}{% translate "Moi" %}{% else %}{{ membre.personne.first_name|default:membre.personne.email }}{% endif %}</span>
+      </span>
+      <span class="indicateur block">{{ membre.synthese.patrimoine_net|euros }}</span>
+      <span class="aide block">{% blocktranslate count n=membre.synthese.comptes|length %}{{ n }} compte · voir le détail{% plural %}{{ n }} comptes · voir le détail{% endblocktranslate %}</span>
+    </button>
+  </form>
+  {% endfor %}
+</section>
+
+<section class="carte space-y-4" aria-labelledby="titre-evolution">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <h2 id="titre-evolution">{% translate "Évolution du patrimoine du foyer" %}</h2>
+      <p class="text-xs text-texte-discret">{% translate "en fin de mois, tous les membres réunis" %}</p>
+    </div>
+    <nav class="inline-flex rounded-xl border border-bordure-forte bg-surface p-0.5 text-sm" aria-label="{% translate 'Période' %}">
+      {% for nombre in periodes %}
+      <a class="rounded-lg px-3 py-1 no-underline hover:no-underline {% if nombre == periode %}bg-primaire-50 font-medium text-primaire-600{% else %}text-texte-discret hover:text-texte{% endif %}" href="?periode={{ nombre }}">{% blocktranslate %}{{ nombre }} mois{% endblocktranslate %}</a>
+      {% endfor %}
+    </nav>
+  </div>
+  {% if ensemble.courbe %}
+    {% translate "Patrimoine du foyer en fin de mois" as titre_courbe %}
+    {% include "composants/_courbe.html" with courbe=ensemble.courbe titre=titre_courbe %}
+  {% else %}
+    <p class="py-6 text-center text-sm text-texte-discret">{% translate "Pas encore assez d'historique." %}</p>
+  {% endif %}
+</section>
+
+<div class="grid gap-6 lg:grid-cols-2">
+  <section class="carte space-y-2" aria-labelledby="titre-operations">
+    <h2 id="titre-operations">{% translate "Dernières opérations" %}</h2>
+    {% if ensemble.dernieres_operations %}
+    <ul class="liste">
+      {% for operation in ensemble.dernieres_operations %}
+      <li class="ligne">
+        <span class="vignette {% if operation.montant < 0 %}vignette-sortie{% else %}vignette-entree{% endif %}">{% if operation.montant < 0 %}{% icone "baisse" classe="size-4" %}{% else %}{% icone "hausse" classe="size-4" %}{% endif %}</span>
+        <span class="min-w-0 flex-1">
+          <span class="block truncate font-medium">{{ operation.libelle }}</span>
+          <span class="block text-xs text-texte-discret">{{ operation.date|date:"j M" }} · {{ operation.compte.nom }} · {{ operation.foyer.personne.first_name|default:operation.foyer.personne.email }}</span>
+        </span>
+        <span class="montant font-semibold {% if operation.montant > 0 %}text-succes{% endif %}">{{ operation.montant|euros }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="py-4 text-sm text-texte-discret">{% translate "Aucune opération pour l'instant." %}</p>
+    {% endif %}
+  </section>
+
+  <section class="carte space-y-3" aria-labelledby="titre-factures">
+    <div class="flex items-baseline justify-between gap-3">
+      <h2 id="titre-factures">{% translate "Factures à payer" %}</h2>
+      {% if ensemble.nombre_factures %}<a class="text-sm" href="{% url 'documents:liste' %}?a_payer=on">{% translate "Toutes" %}</a>{% endif %}
+    </div>
+    {% if ensemble.factures %}
+    <ul class="liste">
+      {% for facture in ensemble.factures %}
+      <li class="ligne">
+        <span class="min-w-0 flex-1"><a class="block truncate font-medium text-texte" href="{% url 'documents:document' facture.document.pk %}">{{ facture.document.titre }}</a>
+          {% if facture.document.echeance %}<span class="block text-xs {% if facture.en_retard %}text-danger{% else %}text-texte-discret{% endif %}">{% blocktranslate with date=facture.document.echeance|date:"j M" %}échéance le {{ date }}{% endblocktranslate %}</span>{% endif %}</span>
+        <span class="montant font-medium">{{ facture.document.montant|euros }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    <p class="flex justify-between border-t border-bordure pt-3 text-sm"><span class="text-texte-discret">{% translate "Total" %}</span><strong class="tabular-nums">{{ ensemble.montant_factures|euros }}</strong></p>
+    {% else %}
+    <p class="py-4 text-sm text-texte-discret">{% translate "Aucune facture en attente." %}</p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

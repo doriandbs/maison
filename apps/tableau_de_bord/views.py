@@ -5,6 +5,7 @@ from django.views.generic import TemplateView
 from apps.foyers.acces import AccesFoyerMixin
 
 from . import patrimoine
+from .ensemble import ensemble
 from .services import synthese
 
 
@@ -24,4 +25,27 @@ class VueTableauDeBord(AccesFoyerMixin, TemplateView):
         points = patrimoine.evolution(self.foyer, contexte["periode"], resume.aujourd_hui)
         contexte["evolution"] = points
         contexte["courbe"] = patrimoine.graphique(points)
+        return contexte
+
+
+class VueEnsemble(AccesFoyerMixin, TemplateView):
+    """Les finances de tous les membres du foyer réunies, en lecture seule.
+
+    Chaque espace affiché vient de `request.espaces` : uniquement ceux auxquels le foyer
+    courant donne accès.
+    """
+
+    portee = "foyer"
+    template_name = "tableau_de_bord/ensemble.html"
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        contexte = super().get_context_data(**kwargs)
+        periode = self.request.GET.get("periode")
+        contexte["periode"] = int(periode) if periode in {"12", "24"} else 12
+        contexte["periodes"] = patrimoine.PERIODES
+        contexte["ensemble"] = ensemble(
+            self.request.espaces,  # type: ignore[attr-defined]
+            self.foyer,
+            contexte["periode"],
+        )
         return contexte

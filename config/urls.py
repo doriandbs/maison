@@ -7,7 +7,7 @@ from django.http import HttpRequest, HttpResponse
 from django.urls import include, path
 
 from apps.socle.views import sante
-from apps.tableau_de_bord.views import VueTableauDeBord
+from apps.tableau_de_bord.views import VueEnsemble, VueTableauDeBord
 from apps.utilisateurs.double_auth import est_verifie
 
 
@@ -28,6 +28,7 @@ admin.site.has_permission = _acces_admin  # type: ignore[method-assign]
 urlpatterns = [
     path("", VueTableauDeBord.as_view(), name="accueil"),
     path("sante/", sante, name="sante"),
+    path("ensemble/", VueEnsemble.as_view(), name="ensemble"),
     path("compte/", include("apps.utilisateurs.urls")),
     path("", include("apps.foyers.urls")),
     path("", include("apps.banque.urls")),
