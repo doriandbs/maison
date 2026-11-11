@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import date
 from decimal import Decimal
 
 from django.core.exceptions import ValidationError
@@ -9,7 +10,15 @@ from django.utils.translation import gettext_lazy as _
 
 from apps.socle.models import ModeleDeFoyer
 
-from .services.amortissement import Anticipe, Conditions, Differe, Effet, Tableau, calculer
+from .services.amortissement import (
+    Anticipe,
+    Conditions,
+    Differe,
+    Effet,
+    Tableau,
+    ajouter_mois,
+    calculer,
+)
 
 
 class TypeDiffere(models.TextChoices):
@@ -44,7 +53,19 @@ class Pret(ModeleDeFoyer):
         validators=[MinValueValidator(1), MaxValueValidator(600)],
         help_text=_("Différé compris. 25 ans = 300 mois."),
     )
-    premiere_echeance = models.DateField(_("date de la première échéance"))
+    premiere_echeance = models.DateField(
+        _("date de la première échéance"),
+        help_text=_("Le premier prélèvement, même s'il ne contient que l'assurance (différé)."),
+    )
+    signe_le = models.DateField(
+        _("date de signature"),
+        null=True,
+        blank=True,
+        help_text=_(
+            "Ou du premier déblocage des fonds. Le crédit et le bien comptent dans votre "
+            "patrimoine à partir de cette date. Vide : un mois avant la première échéance."
+        ),
+    )
     assurance_mensuelle = models.DecimalField(
         _("assurance par mois"), max_digits=10, decimal_places=2, default=0
     )
@@ -80,6 +101,11 @@ class Pret(ModeleDeFoyer):
     def __str__(self) -> str:
         return self.nom
 
+    @property
+    def debut(self) -> date:
+        """À partir de quand le prêt existe : dette due et bien possédé."""
+        return self.signe_le or ajouter_mois(self.premiere_echeance, -1)
+
     def clean(self) -> None:
         if self.compte_id and self.compte.foyer_id != self.foyer_id:  # type: ignore[union-attr]
             raise ValidationError(_("Le compte appartient à un autre foyer."))
@@ -87,6 +113,10 @@ class Pret(ModeleDeFoyer):
             self.differe_mois = 0
         elif not self.differe_mois:
             raise ValidationError({"differe_mois": _("Indiquez la durée du différé.")})
+        if self.signe_le and self.premiere_echeance and self.signe_le > self.premiere_echeance:
+            raise ValidationError(
+                {"signe_le": _("La signature précède forcément la première échéance.")}
+            )
         if self.duree_mois and self.differe_mois >= self.duree_mois:
             raise ValidationError(
                 {"differe_mois": _("Le différé doit être plus court que le prêt.")}

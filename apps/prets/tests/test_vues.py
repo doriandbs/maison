@@ -230,6 +230,34 @@ class TestPatrimoineNet:
         assert total_dettes(encours) == total_biens(encours) == 0
         assert not encours[0].est_termine and encours[0].part_remboursee == 0
 
+    def test_la_date_de_signature_fait_commencer_le_pret(self, alice):
+        # Signé aujourd'hui, première échéance dans deux ans (différé, achat dans le neuf).
+        pret = FabriquePret(
+            foyer=alice.foyer,
+            valeur_bien=D("250000"),
+            signe_le=date(2026, 6, 1),
+            premiere_echeance=date(2028, 6, 5),
+        )
+
+        encours = encours_du_foyer(alice.foyer, date(2026, 11, 11))
+
+        assert encours[0].a_commence
+        assert total_dettes(encours) == pret.capital and total_biens(encours) == D("250000")
+
+    def test_signature_apres_la_premiere_echeance_refusee(self, client, alice):
+        client.post(reverse("prets:ajouter"), DONNEES | {"signe_le": "2026-02-01"})
+
+        assert not Pret.objects.exists()
+
+    def test_un_pret_pas_encore_commence_l_annonce(self, client, alice):
+        pret = FabriquePret(foyer=alice.foyer, premiere_echeance=date(2030, 1, 5))
+
+        liste = client.get(reverse("prets:liste")).content.decode()
+        detail = client.get(reverse("prets:pret", args=[pret.pk])).content.decode()
+
+        assert "pas encore commencé" in liste and "Montant emprunté" in liste
+        assert "Pas encore commencé" in detail
+
     def test_sans_credit(self, alice):
         resultat = synthese(alice.foyer, date(2026, 1, 1))
 

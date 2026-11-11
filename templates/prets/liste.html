@@ -31,10 +31,16 @@
       {% if element.en_differe %}<span class="pastille-alerte">{% translate "différé" %}</span>{% endif %}
     </div>
     <div>
+      {% if element.a_commence %}
       <p class="libelle-indicateur">{% translate "Reste à rembourser" %}</p>
       <p class="indicateur">{{ element.capital_restant_du|euros }}</p>
       <span class="jauge" aria-hidden="true"><span style="--part: {{ element.part_remboursee|nombre_brut }}%"></span></span>
       <p class="aide">{% blocktranslate with part=element.part_remboursee|floatformat:0 capital=element.pret.capital|euros %}{{ part }} % de {{ capital }} remboursés{% endblocktranslate %}</p>
+      {% else %}
+      <p class="libelle-indicateur">{% translate "Montant emprunté" %}</p>
+      <p class="indicateur">{{ element.pret.capital|euros }}</p>
+      <p class="aide"><span class="pastille-neutre">{% translate "pas encore commencé" %}</span> {% blocktranslate with date=element.pret.debut|date:"j F Y" %}compté à partir du {{ date }}{% endblocktranslate %}</p>
+      {% endif %}
     </div>
     <dl class="grid grid-cols-2 gap-3 border-t border-bordure pt-4 text-sm">
       <div><dt class="text-texte-discret">{% translate "Prochaine échéance" %}</dt><dd class="font-medium tabular-nums">{{ element.prochaine_echeance.total|euros }}</dd></div>

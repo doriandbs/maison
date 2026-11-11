@@ -11,7 +11,7 @@ from itertools import groupby
 from apps.foyers.models import Foyer
 from apps.prets.models import Pret
 
-from .amortissement import ZERO, Echeance, Tableau, ajouter_mois
+from .amortissement import ZERO, Echeance, Tableau
 
 
 @dataclass
@@ -22,9 +22,9 @@ class Encours:
 
     @property
     def a_commence(self) -> bool:
-        """Le prêt (et le bien qu'il finance) existe à partir du mois qui précède la
-        1re échéance : avant, ni dette ni bien, sinon le patrimoine plongerait à tort."""
-        return self.a_date >= ajouter_mois(self.pret.premiere_echeance, -1)
+        """Le prêt (et le bien qu'il finance) n'existe qu'à partir de sa signature : avant,
+        ni dette ni bien, sinon le patrimoine plongerait à tort (voir `Pret.debut`)."""
+        return self.a_date >= self.pret.debut
 
     @property
     def capital_restant_du(self) -> Decimal:

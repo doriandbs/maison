@@ -22,10 +22,16 @@
 <section class="carte-vedette" aria-label="{% translate 'Capital restant dû' %}">
   <div class="grid gap-6 md:grid-cols-[1.4fr_1fr] md:items-end">
     <div>
+      {% if encours.a_commence %}
       <p class="text-sm font-medium text-white/75">{% translate "Capital restant dû" %}</p>
       <p class="mt-1 text-4xl font-semibold tracking-tight tabular-nums sm:text-5xl" data-compteur="{{ encours.capital_restant_du|valeur_brute }}">{{ encours.capital_restant_du|euros }}</p>
       <span class="jauge mt-4 max-w-md" aria-hidden="true"><span style="--part: {{ encours.part_remboursee|nombre_brut }}%"></span></span>
       <p class="mt-2 text-sm text-white/75">{% blocktranslate with part=encours.part_remboursee|floatformat:0 %}{{ part }} % remboursés{% endblocktranslate %}</p>
+      {% else %}
+      <p class="text-sm font-medium text-white/75">{% translate "Montant emprunté" %}</p>
+      <p class="mt-1 text-4xl font-semibold tracking-tight tabular-nums sm:text-5xl">{{ pret.capital|euros }}</p>
+      <p class="mt-3 text-sm text-white/75">{% blocktranslate with date=pret.debut|date:"j F Y" %}Pas encore commencé : compté dans votre patrimoine à partir du {{ date }}. Indiquez la date de signature dans « Modifier » si le prêt est déjà signé.{% endblocktranslate %}</p>
+      {% endif %}
     </div>
     <dl class="grid grid-cols-2 gap-4 rounded-2xl bg-white/10 p-4 text-sm ring-1 ring-white/15">
       <div><dt class="text-white/70">{% translate "Échéances restantes" %}</dt><dd class="text-lg font-semibold tabular-nums">{{ encours.echeances_restantes }}</dd></div>

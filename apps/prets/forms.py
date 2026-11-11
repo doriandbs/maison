@@ -13,7 +13,18 @@ from .models import EffetAnticipe, Pret, RemboursementAnticipe
 
 
 class FormulairePret(FormulaireDeFoyer):
-    premiere_echeance = ChampDate(label=_("Date de la première échéance"))
+    premiere_echeance = ChampDate(
+        label=_("Date de la première échéance"),
+        help_text=_("Le premier prélèvement, même s'il ne contient que l'assurance (différé)."),
+    )
+    signe_le = ChampDate(
+        label=_("Date de signature"),
+        required=False,
+        help_text=_(
+            "Ou du premier déblocage des fonds : le crédit compte à partir de cette date. "
+            "Vide : un mois avant la première échéance."
+        ),
+    )
 
     class Meta:
         model = Pret
@@ -23,6 +34,7 @@ class FormulairePret(FormulaireDeFoyer):
             "capital",
             "taux_annuel",
             "duree_mois",
+            "signe_le",
             "premiere_echeance",
             "assurance_mensuelle",
             "type_differe",
