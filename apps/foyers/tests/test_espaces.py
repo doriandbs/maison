@@ -85,6 +85,10 @@ class TestFoyerReuni:
         assert {c.nom for c in page.context["comptes"]} == {"Courant SG", "Bourso"}
         assert page.context["plusieurs_titulaires"]
         assert ">Dorian<" in page.content.decode()  # le titulaire est indiqué
+        assert {p.nom for p in page.context["repartition"]} == {
+            "Dorian",
+            alexandra.utilisateur.first_name or alexandra.utilisateur.email,
+        }
 
     def test_un_membre_modifie_le_compte_d_un_autre(self, client):
         dorian = espace_de()

@@ -54,3 +54,31 @@ def regrouper_par_etablissement(
     for cle, groupe in groupes.items():
         groupe.nom = _nom_retenu(graphies[cle]) if cle else _("Sans établissement")
     return sorted(groupes.values(), key=lambda g: (g.est_sans_etablissement, _cle(g.nom)))
+
+
+@dataclass
+class PartTitulaire:
+    nom: str
+    total: Decimal
+    part: Decimal | None  # en %, None si le total n'est pas positif
+
+
+def repartir_par_titulaire(
+    comptes: list[Compte], soldes: dict[int, Decimal]
+) -> list[PartTitulaire]:
+    """Argent détenu par chaque personne (titulaire de l'espace du compte), du plus au moins."""
+    totaux: dict[int, Decimal] = {}
+    noms: dict[int, str] = {}
+    for compte in comptes:
+        totaux[compte.foyer_id] = totaux.get(compte.foyer_id, ZERO) + soldes[compte.pk]
+        noms[compte.foyer_id] = compte.proprietaire
+    ensemble = sum(totaux.values(), ZERO)
+    parts = [
+        PartTitulaire(
+            noms[espace],
+            total,
+            (total / ensemble * 100).quantize(Decimal("1")) if ensemble > 0 else None,
+        )
+        for espace, total in totaux.items()
+    ]
+    return sorted(parts, key=lambda p: p.total, reverse=True)

@@ -44,7 +44,7 @@ from .services import importation as service_importation
 from .services import operations as service_operations
 from .services import regles as service_regles
 from .services import soldes as service_soldes
-from .services.regroupement import regrouper_par_etablissement
+from .services.regroupement import regrouper_par_etablissement, repartir_par_titulaire
 
 # --- Comptes ---------------------------------------------------------------
 
@@ -63,6 +63,7 @@ class VueComptes(AccesFoyerMixin, TemplateView):
         contexte["groupes"] = regrouper_par_etablissement(actifs, soldes)
         contexte["comptes_archives"] = [compte for compte in comptes if compte.est_archive]
         contexte["total"] = sum(compte.solde for compte in actifs)  # type: ignore[attr-defined]
+        contexte["repartition"] = repartir_par_titulaire(actifs, soldes)
         return contexte
 
 

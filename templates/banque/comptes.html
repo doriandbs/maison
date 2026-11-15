@@ -16,6 +16,13 @@
 <section class="carte flex flex-wrap items-baseline justify-between gap-3" aria-label="{% translate 'Total' %}">
   <p class="libelle-indicateur">{% blocktranslate count n=comptes|length %}Total de {{ n }} compte{% plural %}Total des {{ n }} comptes{% endblocktranslate %}</p>
   <p class="indicateur mt-0 {% if total < 0 %}text-danger{% endif %}" data-compteur="{{ total|valeur_brute }}">{{ total|euros }}</p>
+  {% if plusieurs_titulaires and repartition|length > 1 %}
+  <ul class="flex w-full flex-wrap gap-x-6 gap-y-1 text-sm text-texte-discret" aria-label="{% translate 'Répartition par personne' %}">
+    {% for part in repartition %}
+    <li><span class="font-medium text-texte">{{ part.nom }}</span> <span class="tabular-nums {% if part.total < 0 %}text-danger{% endif %}">{{ part.total|euros }}</span>{% if part.part is not None %} <span class="tabular-nums">({{ part.part }} %)</span>{% endif %}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
 </section>
 
 <div class="grid items-start gap-6 lg:grid-cols-2">

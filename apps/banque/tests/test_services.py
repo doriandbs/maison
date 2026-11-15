@@ -11,7 +11,10 @@ from apps.banque.services.categories import (
     basculer_archivage_categorie,
 )
 from apps.banque.services.operations import ErreurVirement, creer_virement, supprimer_operation
-from apps.banque.services.regroupement import regrouper_par_etablissement
+from apps.banque.services.regroupement import (
+    regrouper_par_etablissement,
+    repartir_par_titulaire,
+)
 from apps.banque.services.soldes import enregistrer_releve, soldes_des_comptes
 from apps.foyers.espaces import espace_personnel
 from apps.foyers.services import creer_foyer
@@ -342,3 +345,28 @@ class TestRegroupementParEtablissement:
 
     def test_aucun_compte(self):
         assert regrouper_par_etablissement([], {}) == []
+
+
+class TestRepartitionParTitulaire:
+    def test_total_et_part_de_chacun(self):
+        dorian = espace_personnel(FabriqueUtilisateur(first_name="Dorian"))
+        alexandra = espace_personnel(FabriqueUtilisateur(first_name="Alexandra"))
+        a = FabriqueCompte(foyer=dorian)
+        b = FabriqueCompte(foyer=dorian)
+        c = FabriqueCompte(foyer=alexandra)
+        soldes = {a.pk: Decimal("500"), b.pk: Decimal("100"), c.pk: Decimal("400")}
+
+        parts = repartir_par_titulaire([a, b, c], soldes)
+
+        assert [(p.nom, p.total, p.part) for p in parts] == [
+            ("Dorian", Decimal("600"), Decimal("60")),
+            ("Alexandra", Decimal("400"), Decimal("40")),
+        ]
+
+    def test_pas_de_pourcentage_si_le_total_est_negatif(self):
+        espace = espace_personnel(FabriqueUtilisateur())
+        compte = FabriqueCompte(foyer=espace)
+
+        (part,) = repartir_par_titulaire([compte], {compte.pk: Decimal("-10")})
+
+        assert part.part is None
